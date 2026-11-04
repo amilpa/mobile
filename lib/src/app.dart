@@ -217,19 +217,17 @@ class _AppState() extends ConsumerState<Application> {
           prefs.themeMode,
           prefs.backgroundColor,
           prefs.backgroundImage,
-          prefs.systemColors,
+          prefs.accent,
           prefs.locale,
         ),
       ),
     );
-    final boardTheme = ref.watch(boardPreferencesProvider.select((prefs) => prefs.boardTheme));
     final theme = makeAppTheme(
       context,
       themeMode: themeConfig.$1,
       backgroundColor: themeConfig.$2,
       backgroundImage: themeConfig.$3,
-      systemColors: themeConfig.$4,
-      boardTheme: boardTheme,
+      accentColor: themeConfig.$4,
     );
 
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
@@ -248,6 +246,7 @@ class _AppState() extends ConsumerState<Application> {
       supportedLocales: AppLocalizations.supportedLocales,
       title: 'lichess.org',
       locale: themeConfig.$5,
+      scrollBehavior: const _BouncingScrollBehavior(),
       theme: theme.copyWith(
         navigationBarTheme: isIOS
             ? null
@@ -257,5 +256,19 @@ class _AppState() extends ConsumerState<Application> {
       home: const MainTabScaffold(),
       navigatorObservers: [rootNavPageRouteObserver, rootNavRouteStackObserver],
     );
+  }
+}
+
+/// Scroll behavior of the whole app: content stretches past its edges and springs back, instead
+/// of stopping abruptly at the top or bottom.
+class const _BouncingScrollBehavior() extends MaterialScrollBehavior {
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) =>
+      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
+    // The bounce already shows the edge: no glow or stretch on top of it.
+    return child;
   }
 }

@@ -32,7 +32,7 @@ abstract class Styles() {
   static const bodySectionBottomPadding = EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0);
 
   // cards
-  static const cardBorderRadius = BorderRadius.all(Radius.circular(12.0));
+  static const cardBorderRadius = BorderRadius.all(Radius.circular(8.0));
 
   // boards
   static const boardBorderRadius = BorderRadius.all(Radius.circular(5.0));

@@ -4,14 +4,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
+import 'package:lichess_mobile/src/model/settings/accent_color.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/settings/general_preferences.dart';
 import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
-import 'package:lichess_mobile/src/utils/color_palette.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
+import 'package:lichess_mobile/src/view/settings/accent_color_picker.dart';
 import 'package:lichess_mobile/src/view/settings/background_theme_choice_screen.dart';
 import 'package:lichess_mobile/src/view/settings/board_choice_screen.dart';
 import 'package:lichess_mobile/src/view/settings/piece_set_screen.dart';
@@ -108,15 +109,13 @@ class _BodyState() extends ConsumerState<_Body> {
                 ListSection(
                   hasLeading: true,
                   children: [
-                    if (getSystemCorePalettes() != null)
-                      SwitchSettingTile(
-                        leading: const Icon(Icons.colorize_outlined),
-                        title: Text(context.l10n.mobileSystemColors),
-                        value: generalPrefs.systemColors,
-                        onChanged: (value) {
-                          ref.read(generalPreferencesProvider.notifier).toggleSystemColors();
-                        },
-                      ),
+                    SettingsListTile(
+                      icon: const Icon(Icons.palette_outlined),
+                      settingsLabel: const Text('Primary color'),
+                      settingsValue: AccentColor.fromColor(generalPrefs.accent)?.label ?? 'Custom',
+                      trailing: _ColorCircle(color: generalPrefs.accent),
+                      onTap: () => showAccentColorPicker(context),
+                    ),
                     SettingsListTile(
                       icon: const Icon(Icons.brightness_medium_outlined),
                       settingsLabel: Text(context.l10n.background),
@@ -180,7 +179,7 @@ class _BodyState() extends ConsumerState<_Body> {
                     SettingsListTile(
                       icon: const Icon(LichessIcons.chess_board),
                       settingsLabel: Text(context.l10n.board),
-                      settingsValue: boardPrefs.boardTheme.label,
+                      settingsValue: boardPrefs.boardLabel,
                       onTap: () {
                         Navigator.of(context).push(BoardChoiceScreen.buildRoute());
                       },
@@ -188,7 +187,7 @@ class _BodyState() extends ConsumerState<_Body> {
                     SettingsListTile(
                       icon: const Icon(LichessIcons.chess_pawn),
                       settingsLabel: Text(context.l10n.pieceSet),
-                      settingsValue: boardPrefs.pieceSet.label,
+                      settingsValue: boardPrefs.pieceSetLabel,
                       onTap: () {
                         Navigator.of(context).push(PieceSetScreen.buildRoute());
                       },

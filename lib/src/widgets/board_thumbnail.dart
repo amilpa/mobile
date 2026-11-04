@@ -95,8 +95,8 @@ class _BoardThumbnailState() extends ConsumerState<BoardThumbnail> {
             ? Styles.boardBorderRadius.copyWith(topRight: Radius.zero, bottomRight: Radius.zero)
             : Styles.boardBorderRadius,
         boxShadow: (widget.showEvaluationGauge) ? [] : boardShadows,
-        pieceAssets: boardPrefs.pieceSet.assets,
-        colorScheme: boardPrefs.boardTheme.colors,
+        pieceAssets: boardPrefs.pieceAssets,
+        colorScheme: boardPrefs.boardColors,
         animationDuration: widget.animationDuration,
         hue: boardPrefs.hue,
         brightness: boardPrefs.brightness,

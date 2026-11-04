@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/l10n/l10n.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
+import 'package:lichess_mobile/src/model/settings/neo_board.dart';
 import 'package:lichess_mobile/src/model/settings/preferences_storage.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/color_palette.dart';
@@ -37,11 +38,19 @@ class BoardPreferences() extends Notifier<BoardPrefs> with PreferencesStorage<Bo
   }
 
   Future<void> setPieceSet(PieceSet pieceSet) {
-    return save(state.copyWith(pieceSet: pieceSet));
+    return save(state.copyWith(pieceSet: pieceSet, neoPieceSet: null));
+  }
+
+  Future<void> setNeoPieceSet(NeoPieceSet pieceSet) {
+    return save(state.copyWith(neoPieceSet: pieceSet));
   }
 
   Future<void> setBoardTheme(BoardTheme boardTheme) async {
-    await save(state.copyWith(boardTheme: boardTheme));
+    await save(state.copyWith(boardTheme: boardTheme, neoBoard: null));
+  }
+
+  Future<void> setNeoBoard(NeoBoard board) {
+    return save(state.copyWith(neoBoard: board));
   }
 
   Future<void> togglePremoves() async {
@@ -139,6 +148,12 @@ sealed class const BoardPrefs._() with _$BoardPrefs implements Serializable {
     required PieceSet pieceSet,
     @JsonKey(defaultValue: BoardTheme.brown, unknownEnumValue: BoardTheme.brown)
     required BoardTheme boardTheme,
+
+    /// LichessNeo piece set, used instead of [pieceSet] when set.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) NeoPieceSet? neoPieceSet,
+
+    /// LichessNeo board, used instead of [boardTheme] when set.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) NeoBoard? neoBoard,
     bool? immersiveModeWhilePlaying,
     required bool hapticFeedback,
     required bool showLegalMoves,
@@ -211,14 +226,26 @@ sealed class const BoardPrefs._() with _$BoardPrefs implements Serializable {
   bool get hasColorAdjustments =>
       brightness != kBoardDefaultBrightnessFilter || hue != kBoardDefaultHueFilter;
 
+  /// The images of the selected piece set.
+  PieceAssets get pieceAssets => neoPieceSet?.assets ?? pieceSet.assets;
+
+  /// The name of the selected piece set.
+  String get pieceSetLabel => neoPieceSet?.label ?? pieceSet.label;
+
+  /// The colors of the selected board.
+  ChessboardColorScheme get boardColors => neoBoard?.colors ?? boardTheme.colors;
+
+  /// The name of the selected board.
+  String get boardLabel => neoBoard?.label ?? boardTheme.label;
+
   ChessboardSettings toBoardSettings(Variant variant) {
     return ChessboardSettings(
-      pieceAssets: pieceSet.assets,
-      colorScheme: boardTheme.colors,
+      pieceAssets: pieceAssets,
+      colorScheme: boardColors,
       brightness: brightness,
       hue: hue,
       border: showBorder
-          ? BoardBorder(color: darken(boardTheme.colors.darkSquare, 0.2), width: 16.0)
+          ? BoardBorder(color: darken(boardColors.darkSquare, 0.2), width: 16.0)
           : null,
       showValidMoves: showLegalMoves,
       showLastMove: boardHighlights,

@@ -16,6 +16,7 @@ import 'package:lichess_mobile/src/utils/http_network_image.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/lichess_assets.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/view/account/profile_picture.dart';
 import 'package:lichess_mobile/src/view/account/profile_screen.dart';
 import 'package:lichess_mobile/src/view/auth/sign_in_error.dart';
 import 'package:lichess_mobile/src/view/auth/sign_in_options.dart';
@@ -113,27 +114,30 @@ class _AccountMenuScreenState()
               children: [
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  leading: switch (account) {
-                    AsyncData(:final value) =>
-                      value == null
-                          ? const Icon(Icons.account_circle_outlined, size: 30)
-                          : CircleAvatar(
-                              radius: 20,
-                              foregroundImage: value.flair != null && !_errorLoadingFlair
-                                  ? HttpNetworkImage(lichessFlairSrc(value.flair!), client)
-                                  : null,
-                              onForegroundImageError: value.flair != null
-                                  ? (error, _) => setState(() => _errorLoadingFlair = true)
-                                  : null,
-                              backgroundColor: value.flair == null || _errorLoadingFlair
-                                  ? null
-                                  : ColorScheme.of(context).surfaceContainer,
-                              child: value.flair == null || _errorLoadingFlair
-                                  ? Text(value.initials)
-                                  : null,
-                            ),
-                    _ => const Icon(Icons.account_circle_outlined, size: 30),
-                  },
+                  leading: OwnAvatar(
+                    radius: 20,
+                    fallback: switch (account) {
+                      AsyncData(:final value) =>
+                        value == null
+                            ? const Icon(Icons.account_circle_outlined, size: 30)
+                            : CircleAvatar(
+                                radius: 20,
+                                foregroundImage: value.flair != null && !_errorLoadingFlair
+                                    ? HttpNetworkImage(lichessFlairSrc(value.flair!), client)
+                                    : null,
+                                onForegroundImageError: value.flair != null
+                                    ? (error, _) => setState(() => _errorLoadingFlair = true)
+                                    : null,
+                                backgroundColor: value.flair == null || _errorLoadingFlair
+                                    ? null
+                                    : ColorScheme.of(context).surfaceContainer,
+                                child: value.flair == null || _errorLoadingFlair
+                                    ? Text(value.initials)
+                                    : null,
+                              ),
+                      _ => const Icon(Icons.account_circle_outlined, size: 30),
+                    },
+                  ),
                   trailing: Theme.of(context).platform == TargetPlatform.iOS
                       ? const CupertinoListTileChevron()
                       : null,
@@ -150,6 +154,12 @@ class _AccountMenuScreenState()
                     ref.invalidate(accountProvider);
                     _navigate(context, ProfileScreen.buildRoute());
                   },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.face_outlined),
+                  title: const Text('Profile picture'),
+                  subtitle: const Text('Only visible to you, on this device'),
+                  onTap: () => showProfilePictureOptions(context, ref),
                 ),
                 if (kidMode)
                   ListTile(
@@ -345,6 +355,12 @@ class _AccountMenuButtonState() extends ConsumerState<AccountMenuButton> {
       Navigator.of(context).push(AccountMenuScreen.buildRoute(context));
     }
 
+    final avatarRadius =
+        (Theme.of(context).platform == TargetPlatform.iOS
+            ? _cupertinoAnonIconSize / 2
+            : _materialAnonIconSize / 2) +
+        1;
+
     return switch (account) {
       AsyncData(:final value) => Badge.count(
         offset: const Offset(-4, 0),
@@ -359,22 +375,21 @@ class _AccountMenuButtonState() extends ConsumerState<AccountMenuButton> {
                       ? _cupertinoAnonIconSize
                       : _materialAnonIconSize,
                 )
-              : CircleAvatar(
-                  radius:
-                      (Theme.of(context).platform == TargetPlatform.iOS
-                          ? _cupertinoAnonIconSize / 2
-                          : _materialAnonIconSize / 2) +
-                      1,
-                  foregroundImage: value.flair != null && !_errorLoadingFlair
-                      ? HttpNetworkImage(lichessFlairSrc(value.flair!), client)
-                      : null,
-                  onForegroundImageError: value.flair != null
-                      ? (error, _) => setState(() => _errorLoadingFlair = true)
-                      : null,
-                  backgroundColor: value.flair == null || _errorLoadingFlair
-                      ? null
-                      : ColorScheme.of(context).surfaceContainer,
-                  child: value.flair == null || _errorLoadingFlair ? Text(value.initials) : null,
+              : OwnAvatar(
+                  radius: avatarRadius,
+                  fallback: CircleAvatar(
+                    radius: avatarRadius,
+                    foregroundImage: value.flair != null && !_errorLoadingFlair
+                        ? HttpNetworkImage(lichessFlairSrc(value.flair!), client)
+                        : null,
+                    onForegroundImageError: value.flair != null
+                        ? (error, _) => setState(() => _errorLoadingFlair = true)
+                        : null,
+                    backgroundColor: value.flair == null || _errorLoadingFlair
+                        ? null
+                        : ColorScheme.of(context).surfaceContainer,
+                    child: value.flair == null || _errorLoadingFlair ? Text(value.initials) : null,
+                  ),
                 ),
           onPressed: openMenu,
         ),

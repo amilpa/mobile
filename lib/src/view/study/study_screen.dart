@@ -571,7 +571,7 @@ class _StudyAnalysisBoardState()
                     move: move,
                     color: Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5),
                     sideToMove: analysisState.currentPosition!.turn,
-                    pieceAssets: boardPrefs.pieceSet.assets,
+                    pieceAssets: boardPrefs.pieceAssets,
                   ),
                 )
                 .flattened

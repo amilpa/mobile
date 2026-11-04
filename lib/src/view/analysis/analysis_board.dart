@@ -237,7 +237,7 @@ abstract class AnalysisBoardState<
     final annotation = showAnnotations ? makeAnnotation(currentNode.nags) : null;
     final sanMove = currentNode.sanMove;
 
-    final externalShapes = {..._bestMoveShapes(boardPrefs.pieceSet.assets), ...extraShapes.unlock};
+    final externalShapes = {..._bestMoveShapes(boardPrefs.pieceAssets), ...extraShapes.unlock};
     final boardAnnotations = sanMove != null && annotation != null
         ? (sanMove.isCastles && altCastles.containsKey(sanMove.move.uci)
               ? {Move.parse(altCastles[sanMove.move.uci]!)!.to: annotation}

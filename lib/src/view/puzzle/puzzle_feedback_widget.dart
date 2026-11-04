@@ -108,8 +108,8 @@ class const SideToPlayPiece({required final Side side}) extends ConsumerWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4.0),
               color: brightness == Brightness.light
-                  ? boardPrefs.boardTheme.colors.lightSquare
-                  : boardPrefs.boardTheme.colors.darkSquare,
+                  ? boardPrefs.boardColors.lightSquare
+                  : boardPrefs.boardColors.darkSquare,
             ),
           ),
         ),

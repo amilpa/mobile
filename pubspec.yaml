@@ -120,6 +120,16 @@ flutter:
     - assets/sounds/sfx/
     - assets/board-thumbnails/
     - assets/maia/
+    - assets/neo/
+    - assets/neo/boards/
+    - assets/neo/pieces/mochi/
+    - assets/neo/pieces/mellow/
+    - assets/neo/pieces/poppy/
+    - assets/neo/pieces/bop/
+    - assets/neo/pieces/pebble/
+    - assets/neo/pieces/loop/
+    - assets/neo/pieces/fold/
+    - assets/neo/pieces/bitty/
     - assets/positions.json
     - assets/endgames.json
     - assets/practice.json

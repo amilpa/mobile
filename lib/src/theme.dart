@@ -1,9 +1,9 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:lichess_mobile/src/constants.dart';
-import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/settings/accent_color.dart';
 import 'package:lichess_mobile/src/model/settings/general_preferences.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
-import 'package:lichess_mobile/src/utils/color_palette.dart';
+import 'package:lichess_mobile/src/utils/oklch.dart';
 import 'package:material_ui/material_ui.dart';
 
 const kSliderTheme = SliderThemeData(
@@ -16,8 +16,7 @@ ThemeData makeAppTheme(
   required BackgroundThemeMode themeMode,
   required (BackgroundColor, bool)? backgroundColor,
   required BackgroundImage? backgroundImage,
-  required bool systemColors,
-  required BoardTheme boardTheme,
+  required Color accentColor,
 }) {
   final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
   final isForcedDarkMode = backgroundColor != null || backgroundImage != null;
@@ -33,8 +32,7 @@ ThemeData makeAppTheme(
     return _makeDefaultTheme(
       brightness,
       themeMode: themeMode,
-      systemColors: systemColors,
-      boardTheme: boardTheme,
+      accentColor: accentColor,
       isIOS: isIOS,
     );
   } else {
@@ -82,55 +80,106 @@ extension CustomThemeBuildContext on BuildContext {
 
 // --
 
+/// Lightness of the 14 neutral greys of LichessNeo in dark mode, in percent, from darkest.
+const _kDarkNeutralLightness = [
+  14.0, 15.5, 17.3, 19.2, 21.4, 24.0, 26.9, 30.2, 38.1, 49.1, 64.9, 77.6, 87.9, 97.8, //
+];
+
+/// Lightness of the 14 neutral greys of LichessNeo in light mode, in percent, from lightest.
+const _kLightNeutralLightness = [
+  100.0, 99.3, 98.5, 96.8, 95.4, 93.4, 91.2, 88.6, 80.0, 63.0, 53.0, 44.0, 30.0, 18.0, //
+];
+
+/// The 14 neutral greys of LichessNeo, tinted with the hue of the theme: `neutrals[0]` is
+/// LichessNeo's `neutral-1`.
+List<Color> _neutrals(Brightness brightness, NeutralTint tint) {
+  final lightness = brightness == Brightness.dark
+      ? _kDarkNeutralLightness
+      : _kLightNeutralLightness;
+  return [
+    for (final (index, l) in lightness.indexed)
+      // The last two steps, used for text, are half as tinted.
+      oklchToColor(l / 100, index >= 12 ? tint.chroma / 2 : tint.chroma, tint.hue),
+  ];
+}
+
+/// Builds the color scheme of the app from its [accentColor], the way LichessNeo does: the
+/// accent colors buttons, links and selections, while backgrounds are greys tinted towards the
+/// theme's hue.
+ColorScheme _makeColorScheme(
+  Color accentColor,
+  Brightness brightness,
+  BackgroundThemeMode themeMode,
+) {
+  final accentScheme = ColorScheme.fromSeed(
+    seedColor: accentColor,
+    brightness: brightness,
+    dynamicSchemeVariant: DynamicSchemeVariant.fidelity,
+  );
+  final n = _neutrals(brightness, AccentColor.tintFor(accentColor, brightness));
+  final onAccent = ThemeData.estimateBrightnessForColor(accentColor) == Brightness.dark
+      ? Colors.white
+      : const Color(0xFF0C0C0D);
+
+  final scheme = accentScheme.copyWith(
+    // Buttons use the accent exactly, as LichessNeo's primary buttons.
+    primary: accentColor,
+    onPrimary: onAccent,
+    surfaceTint: Colors.transparent,
+  );
+
+  if (brightness == Brightness.light) {
+    return scheme.copyWith(
+      // Page on neutral-5, panels and cards on neutral-1.
+      surface: n[4],
+      surfaceDim: n[5],
+      surfaceBright: n[0],
+      surfaceContainerLowest: n[0],
+      surfaceContainerLow: n[1],
+      surfaceContainer: n[0],
+      surfaceContainerHigh: n[5],
+      surfaceContainerHighest: n[6],
+      onSurface: n[13],
+      onSurfaceVariant: n[10],
+      outline: n[8],
+      outlineVariant: n[6],
+      inverseSurface: n[12],
+      onInverseSurface: n[0],
+    );
+  }
+
+  final isAmoled = themeMode == BackgroundThemeMode.amoled;
+  const black = Color(0xFF000000);
+  return scheme.copyWith(
+    // Page on neutral-4, panels on neutral-3, raised elements and borders on neutral-6.
+    surface: isAmoled ? black : n[3],
+    surfaceDim: isAmoled ? black : n[1],
+    surfaceBright: n[6],
+    surfaceContainerLowest: isAmoled ? black : n[1],
+    surfaceContainerLow: isAmoled ? n[0] : n[2],
+    surfaceContainer: isAmoled ? n[1] : n[4],
+    surfaceContainerHigh: isAmoled ? n[3] : n[5],
+    surfaceContainerHighest: isAmoled ? n[5] : n[6],
+    // Text is neutral-14 at 88%, dim text neutral-11.
+    onSurface: Color.alphaBlend(n[13].withValues(alpha: 0.88), isAmoled ? black : n[3]),
+    onSurfaceVariant: n[10],
+    outline: n[7],
+    outlineVariant: isAmoled ? n[3] : n[5],
+    inverseSurface: n[12],
+    onInverseSurface: n[1],
+  );
+}
+
 ThemeData _makeDefaultTheme(
   Brightness brightness, {
   required BackgroundThemeMode themeMode,
-  required bool systemColors,
-  required BoardTheme boardTheme,
+  required Color accentColor,
   required bool isIOS,
 }) {
-  final dynamicColorSchemes = getDynamicColorSchemes();
-  final systemScheme = switch (brightness) {
-    Brightness.light => dynamicColorSchemes?.light,
-    Brightness.dark => dynamicColorSchemes?.dark,
-  };
-  final hasSystemColors = systemScheme != null && systemColors;
-
-  final neutralScheme = ColorScheme.fromSeed(
-    seedColor: boardTheme.colors.darkSquare,
-    brightness: brightness,
-    dynamicSchemeVariant: DynamicSchemeVariant.neutral,
-  );
-  final defaultScheme = ColorScheme.fromSeed(
-    seedColor: boardTheme.colors.darkSquare,
-    brightness: brightness,
-  );
-  // makes a theme with neutral surfaces and default colors
-  final boardScheme = defaultScheme.copyWith(
-    surface: neutralScheme.surface,
-    onSurface: neutralScheme.onSurface,
-    surfaceDim: neutralScheme.surfaceDim,
-    surfaceBright: neutralScheme.surfaceBright,
-    surfaceContainer: neutralScheme.surfaceContainer,
-    surfaceContainerLowest: neutralScheme.surfaceContainerLowest,
-    surfaceContainerLow: neutralScheme.surfaceContainerLow,
-    surfaceContainerHigh: neutralScheme.surfaceContainerHigh,
-    surfaceContainerHighest: neutralScheme.surfaceContainerHighest,
-    onSurfaceVariant: neutralScheme.onSurfaceVariant,
-    inverseSurface: neutralScheme.inverseSurface,
-    onInverseSurface: neutralScheme.onInverseSurface,
-    shadow: neutralScheme.shadow,
-    scrim: neutralScheme.scrim,
-    surfaceTint: neutralScheme.surfaceTint,
-  );
-
+  final colorScheme = _makeColorScheme(accentColor, brightness, themeMode);
   final textTheme = isIOS ? kCupertinoDefaultTextTheme : null;
-
-  final theme = hasSystemColors
-      ? ThemeData.from(colorScheme: systemScheme, textTheme: textTheme)
-      : ThemeData.from(colorScheme: boardScheme, textTheme: textTheme);
-
-  final isAmoled = themeMode == BackgroundThemeMode.amoled;
+  final theme = ThemeData.from(colorScheme: colorScheme, textTheme: textTheme);
+  final isDark = brightness == Brightness.dark;
 
   final finalTheme = theme.copyWith(
     cupertinoOverrideTheme: _makeCupertinoThemeData(theme.colorScheme, brightness),
@@ -160,7 +209,16 @@ ThemeData _makeDefaultTheme(
     listTileTheme: _makeListTileTheme(theme.colorScheme, isIOS),
     cardTheme: isIOS
         ? _kCupertinoCardTheme.copyWith(color: theme.colorScheme.surfaceContainerHigh)
-        : null,
+        : CardThemeData(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainer,
+            shape: RoundedRectangleBorder(
+              borderRadius: Styles.cardBorderRadius,
+              side: isDark
+                  ? BorderSide(color: theme.colorScheme.outlineVariant)
+                  : BorderSide.none,
+            ),
+          ),
     inputDecorationTheme: isIOS ? _makeCupertinoInputDecorationTheme(theme.colorScheme) : null,
     floatingActionButtonTheme: isIOS
         ? FloatingActionButtonThemeData(
@@ -168,31 +226,31 @@ ThemeData _makeDefaultTheme(
             foregroundColor: theme.colorScheme.onSecondaryFixedVariant,
           )
         : null,
-    dialogTheme: isIOS ? _kCupertinoDialogTheme : null,
-    filledButtonTheme: isIOS ? _kCupertinoFilledButtonTheme : null,
-    outlinedButtonTheme: isIOS ? _kCupertinoOutlinedButtonTheme : null,
+    dialogTheme: isIOS
+        ? _kCupertinoDialogTheme
+        : const DialogThemeData(
+            shape: RoundedRectangleBorder(borderRadius: Styles.cardBorderRadius),
+          ),
+    filledButtonTheme: isIOS ? _kCupertinoFilledButtonTheme : _kNeoFilledButtonTheme,
+    outlinedButtonTheme: isIOS ? _kCupertinoOutlinedButtonTheme : _kNeoOutlinedButtonTheme,
+    textButtonTheme: isIOS ? null : _kNeoTextButtonTheme,
     menuTheme: isIOS ? _kCupertinoMenuThemeData : null,
     bottomSheetTheme: isIOS ? _kCupertinoBottomSheetTheme : null,
     sliderTheme: kSliderTheme,
     extensions: [lichessCustomColors.harmonized(theme.colorScheme)],
   );
 
-  if (!isAmoled) return finalTheme;
+  if (!isDark) return finalTheme;
 
+  // Flat background with no tint when scrolling, as LichessNeo's pages.
   return finalTheme.copyWith(
-    scaffoldBackgroundColor: const Color(0xFF000000),
+    scaffoldBackgroundColor: theme.colorScheme.surface,
     appBarTheme: finalTheme.appBarTheme.copyWith(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: isIOS ? finalTheme.appBarTheme.backgroundColor : theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
     ),
-    bottomAppBarTheme: finalTheme.bottomAppBarTheme.copyWith(color: const Color(0xFF000000)),
-    colorScheme: finalTheme.colorScheme.copyWith(
-      surface: const Color(0xFF000000),
-      surfaceContainerLowest: const Color(0xFF000000),
-      surfaceContainerLow: const Color(0xFF000000),
-      surfaceContainer: const Color(0xFF000000),
-      surfaceTint: Colors.transparent,
-    ),
+    bottomAppBarTheme: finalTheme.bottomAppBarTheme.copyWith(color: theme.colorScheme.surface),
+    dividerTheme: DividerThemeData(color: theme.colorScheme.outlineVariant, thickness: 0.5),
   );
 }
 
@@ -289,6 +347,27 @@ ThemeData _makeBackgroundImageTheme({
     extensions: [lichessCustomColors.harmonized(baseTheme.colorScheme)],
   );
 }
+
+/// Corners of the buttons, as LichessNeo's.
+const WidgetStatePropertyAll<OutlinedBorder> _kNeoButtonShape = WidgetStatePropertyAll(
+  RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(7))),
+);
+
+const _kNeoFilledButtonTheme = FilledButtonThemeData(
+  style: ButtonStyle(
+    shape: _kNeoButtonShape,
+    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.w800)),
+  ),
+);
+
+const _kNeoOutlinedButtonTheme = OutlinedButtonThemeData(
+  style: ButtonStyle(
+    shape: _kNeoButtonShape,
+    textStyle: WidgetStatePropertyAll(TextStyle(fontWeight: FontWeight.w700)),
+  ),
+);
+
+const _kNeoTextButtonTheme = TextButtonThemeData(style: ButtonStyle(shape: _kNeoButtonShape));
 
 const _kCupertinoFilledButtonTheme = FilledButtonThemeData(
   style: ButtonStyle(

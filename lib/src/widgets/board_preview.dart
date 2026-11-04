@@ -77,8 +77,8 @@ class SmallBoardPreview extends ConsumerWidget {
                     orientation: orientation,
                     lastMove: lastMove,
                     settings: StaticChessboardSettings(
-                      pieceAssets: boardPrefs.pieceSet.assets,
-                      colorScheme: boardPrefs.boardTheme.colors,
+                      pieceAssets: boardPrefs.pieceAssets,
+                      colorScheme: boardPrefs.boardColors,
                       brightness: boardPrefs.brightness,
                       hue: boardPrefs.hue,
                       enableCoordinates: false,

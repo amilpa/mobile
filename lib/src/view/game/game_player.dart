@@ -16,6 +16,7 @@ import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/lichess_assets.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
+import 'package:lichess_mobile/src/view/account/profile_picture.dart';
 import 'package:lichess_mobile/src/view/account/rating_pref_aware.dart';
 import 'package:lichess_mobile/src/view/user/user_or_profile_screen.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
@@ -76,6 +77,12 @@ class const GamePlayer({
                 ? MainAxisAlignment.start
                 : MainAxisAlignment.end,
             children: [
+              if (game.youAre == side)
+                OwnAvatar(
+                  radius: playerFontSize * 0.7,
+                  padding: const EdgeInsets.only(right: 6.0),
+                  fallback: const SizedBox.shrink(),
+                ),
               if (matchupScore != null) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),

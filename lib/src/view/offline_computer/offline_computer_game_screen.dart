@@ -167,7 +167,7 @@ class _BodyState() extends ConsumerState<_Body> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(offlineComputerGameControllerProvider);
-    final boardColorScheme = ref.watch(boardPreferencesProvider).boardTheme.colors;
+    final boardColorScheme = ref.watch(boardPreferencesProvider).boardColors;
 
     ref.listen(offlineComputerGameControllerProvider, (previous, newGameState) {
       if (previous?.finished == false && newGameState.finished) {
@@ -870,8 +870,8 @@ class _NewGameSheetState() extends ConsumerState<_NewGameSheet> {
                       fen: widget.initialFen!,
                       orientation: _selectedSideChoice.toSide(fen: widget.initialFen) ?? Side.white,
                       settings: StaticChessboardSettings(
-                        pieceAssets: boardPrefs.pieceSet.assets,
-                        colorScheme: boardPrefs.boardTheme.colors,
+                        pieceAssets: boardPrefs.pieceAssets,
+                        colorScheme: boardPrefs.boardColors,
                         brightness: boardPrefs.brightness,
                         hue: boardPrefs.hue,
                         enableCoordinates: false,

@@ -97,7 +97,7 @@ Future<void> preloadPieceImages() async {
     }
   }
 
-  await precachePieceImages(boardPrefs.pieceSet);
+  await precachePieceImages(boardPrefs.pieceAssets);
 }
 
 /// Display setup on Android.

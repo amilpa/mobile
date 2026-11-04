@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/settings/neo_board.dart';
+import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/color_palette.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
-import 'package:lichess_mobile/src/widgets/list.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -24,36 +25,65 @@ class const BoardChoiceScreen({super.key}) extends StatelessWidget {
 class const _Body() extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final boardTheme = ref.watch(boardPreferencesProvider.select((p) => p.boardTheme));
+    final (boardTheme, neoBoard) = ref.watch(
+      boardPreferencesProvider.select((p) => (p.boardTheme, p.neoBoard)),
+    );
+    final notifier = ref.read(boardPreferencesProvider.notifier);
 
     final hasSystemColors = getSystemCorePalettes() != null;
-
-    final choices = BoardTheme.values
+    final lichessBoards = BoardTheme.values
         .where((t) => t != BoardTheme.system || hasSystemColors)
         .toList();
 
-    void onChanged(BoardTheme? value) =>
-        ref.read(boardPreferencesProvider.notifier).setBoardTheme(value ?? BoardTheme.brown);
-
     const checkedIcon = Icon(Icons.check);
 
+    Widget tile({
+      required String label,
+      required Widget thumbnail,
+      required bool selected,
+      required VoidCallback onTap,
+    }) {
+      return ListTile(
+        selected: selected,
+        trailing: selected ? checkedIcon : null,
+        title: Text(label),
+        subtitle: Align(alignment: Alignment.topLeft, child: thumbnail),
+        onTap: onTap,
+      );
+    }
+
     return SafeArea(
-      child: ListView.separated(
-        itemBuilder: (context, index) {
-          final t = choices[index];
-          return ListTile(
-            selected: t == boardTheme,
-            trailing: t == boardTheme ? checkedIcon : null,
-            title: Text(t.label),
-            subtitle: Align(alignment: Alignment.topLeft, child: t.thumbnail),
-            onTap: () => onChanged(t),
-          );
-        },
-        separatorBuilder: (_, _) => Theme.of(context).platform == TargetPlatform.iOS
-            ? const PlatformDivider()
-            : const SizedBox.shrink(),
-        itemCount: choices.length,
+      child: ListView(
+        children: [
+          const _SectionHeader('LichessNeo'),
+          for (final board in NeoBoard.values)
+            tile(
+              label: board.label,
+              thumbnail: board.thumbnail,
+              selected: board == neoBoard,
+              onTap: () => notifier.setNeoBoard(board),
+            ),
+          const _SectionHeader('Lichess'),
+          for (final board in lichessBoards)
+            tile(
+              label: board.label,
+              thumbnail: board.thumbnail,
+              selected: neoBoard == null && board == boardTheme,
+              onTap: () => notifier.setBoardTheme(board),
+            ),
+        ],
       ),
+    );
+  }
+}
+
+/// Title of a group of choices.
+class const _SectionHeader(final String title) extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+      child: Text(title, style: Styles.sectionTitle),
     );
   }
 }

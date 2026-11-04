@@ -215,7 +215,7 @@ class _RetroAnalysisBoardState()
         move: mistake,
         color: ShapeColor.red.color.withValues(alpha: 0.4),
         sideToMove: state.currentPosition.turn,
-        pieceAssets: boardPrefs.pieceSet.assets,
+        pieceAssets: boardPrefs.pieceAssets,
       );
     }
     return ISet();

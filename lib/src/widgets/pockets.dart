@@ -55,7 +55,7 @@ class const PocketsMenu({
                     color: side == sideToMove?.opposite && premoveDropRole == role
                         ? ref.watch(
                             boardPreferencesProvider.select(
-                              (prefs) => prefs.boardTheme.colors.validPremoves,
+                              (prefs) => prefs.boardColors.validPremoves,
                             ),
                           )
                         : null,
@@ -73,7 +73,7 @@ class const PocketsMenu({
 
                       side: side,
                       squareSize: squareSize,
-                      pieceAssets: pieceAssets ?? boardPrefs.pieceSet.assets,
+                      pieceAssets: pieceAssets ?? boardPrefs.pieceAssets,
                       isUpsideDown: isUpsideDown,
                     ),
                   ),

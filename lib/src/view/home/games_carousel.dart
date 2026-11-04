@@ -173,7 +173,7 @@ class const _BoardCarouselItem({
     final brightness = ColorScheme.of(context).brightness;
 
     final backgroundColor = lighten(
-      isRealTimeGame ? context.lichessColors.brag : boardPrefs.boardTheme.colors.darkSquare,
+      isRealTimeGame ? context.lichessColors.brag : boardPrefs.boardColors.darkSquare,
       brightness == Brightness.light ? 0.25 : 0.0,
     );
 
@@ -216,10 +216,10 @@ class const _BoardCarouselItem({
                     topLeft: Radius.circular(10.0),
                     topRight: Radius.circular(10.0),
                   ),
-                  pieceAssets: boardPrefs.pieceSet.assets,
+                  pieceAssets: boardPrefs.pieceAssets,
                   colorScheme: isRealTimeGame
                       ? realTimeColors(context)
-                      : boardPrefs.boardTheme.colors,
+                      : boardPrefs.boardColors,
                 ),
               ),
             ),

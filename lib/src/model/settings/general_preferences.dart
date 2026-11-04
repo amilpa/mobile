@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/l10n/l10n.dart';
-import 'package:lichess_mobile/src/model/settings/board_preferences.dart'
-    show BoardPrefs, BoardTheme, boardPreferencesProvider;
+import 'package:lichess_mobile/src/model/settings/accent_color.dart';
 import 'package:lichess_mobile/src/model/settings/preferences_storage.dart';
 import 'package:lichess_mobile/src/theme.dart';
 import 'package:lichess_mobile/src/utils/json.dart';
@@ -56,16 +55,9 @@ class GeneralPreferencesNotifier()
     return save(state.copyWith(masterVolume: volume));
   }
 
-  Future<void> toggleSystemColors() {
-    final newState = state.copyWith(systemColors: !state.systemColors);
-    return Future.wait([
-      save(newState),
-      ref
-          .read(boardPreferencesProvider.notifier)
-          .setBoardTheme(
-            newState.systemColors ? BoardTheme.system : BoardPrefs.defaults.boardTheme,
-          ),
-    ]).then((_) => {});
+  /// Sets the primary color of the app, from which the whole color scheme is derived.
+  Future<void> setAccentColor(Color color) {
+    return save(state.copyWith(accentColor: color.toARGB32()));
   }
 
   Future<void> setBackground({
@@ -90,8 +82,8 @@ sealed class const GeneralPrefs._() with _$GeneralPrefs implements Serializable 
     @JsonKey(unknownEnumValue: SoundTheme.standard) required SoundTheme soundTheme,
     @JsonKey(defaultValue: 0.8) required double masterVolume,
 
-    /// Whether to use system colors on android 10+.
-    @JsonKey(defaultValue: true) required bool systemColors,
+    /// The primary color of the app as an ARGB value, see [AccentColor] for the presets.
+    @JsonKey(defaultValue: kDefaultAccentColor) required int accentColor,
 
     /// Locale to use in the app, use system locale if null
     @LocaleConverter() Locale? locale,
@@ -106,7 +98,7 @@ sealed class const GeneralPrefs._() with _$GeneralPrefs implements Serializable 
     isSoundEnabled: true,
     soundTheme: SoundTheme.standard,
     masterVolume: 0.8,
-    systemColors: true,
+    accentColor: kDefaultAccentColor,
   );
 
   factory fromJson(Map<String, dynamic> json) {
@@ -114,6 +106,9 @@ sealed class const GeneralPrefs._() with _$GeneralPrefs implements Serializable 
   }
 
   bool get isForcedDarkMode => backgroundColor != null || backgroundImage != null;
+
+  /// The primary color of the app.
+  Color get accent => Color(accentColor);
 }
 
 /// Describes the background theme of the app.

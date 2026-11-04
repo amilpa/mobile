@@ -207,7 +207,7 @@ class _PieceMenuState() extends ConsumerState<_PieceMenu> {
               final pieceWidget = PieceWidget(
                 piece: piece,
                 size: squareSize,
-                pieceAssets: boardPrefs.pieceSet.assets,
+                pieceAssets: boardPrefs.pieceAssets,
               );
 
               return ColoredBox(
@@ -223,7 +223,7 @@ class _PieceMenuState() extends ConsumerState<_PieceMenu> {
                     feedback: PieceDragFeedback(
                       piece: piece,
                       squareSize: squareSize,
-                      pieceAssets: boardPrefs.pieceSet.assets,
+                      pieceAssets: boardPrefs.pieceAssets,
                     ),
                     child: pieceWidget,
                     onDragEnd: (_) =>
