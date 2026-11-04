@@ -61,6 +61,7 @@ jobs:
       - name: Build release APK
         run: >
           flutter build apk --release
+          --target-platform android-arm64
           --dart-define=cronetHttpNoPlay=true
           --dart-define=LICHESS_HOST=lichess.org
           --dart-define=LICHESS_WS_HOST=socket.lichess.org
