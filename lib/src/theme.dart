@@ -194,6 +194,12 @@ ThemeData _makeDefaultTheme(
           ? theme.colorScheme.surface.withValues(alpha: kCupertinoBarOpacity)
           : barColor,
       surfaceTintColor: isIOS ? null : Colors.transparent,
+      // Full width, with only its bottom corners rounded.
+      shape: isIOS
+          ? null
+          : const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
       scrolledUnderElevation: 0,
       titleTextStyle: isIOS
           ? const CupertinoTextThemeData().navTitleTextStyle.copyWith(

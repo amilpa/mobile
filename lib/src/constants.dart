@@ -30,7 +30,12 @@ const kLichessTablebaseHost = String.fromEnvironment(
 
 const kLichessCustomUriSchemeName = 'org.lichess.mobile';
 
-const kLichessClientId = 'lichess_mobile';
+/// OAuth client id of this build.
+///
+/// Not the official app's `lichess_mobile`: lichess only accepts that one's tokens when they are
+/// signed with its secret. Lichess needs no registration for a client id, and shows it on the
+/// consent screen.
+const kLichessClientId = 'lichess-mobile-custom';
 
 const kSRIStorageKey = 'socket_random_identifier';
 

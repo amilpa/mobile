@@ -19,7 +19,26 @@ const _kOAuthCustomSchemeCallbackHost = 'login-callback';
 /// Custom schemes are more universally supported across Android browsers/OEMs than
 /// HTTPS App Link redirects, so they are used on every platform and host.
 const kOAuthRedirectUri = '$kLichessCustomUriSchemeName://$_kOAuthCustomSchemeCallbackHost';
-const oauthScopes = ['web:mobile'];
+
+/// Scopes asked by the OAuth login: the regular API scopes the app uses.
+///
+/// The official app asks for `web:mobile` instead, which lichess only grants to its own signed
+/// client. Without it, games are played through the Board API (`board:play`).
+const oauthScopes = [
+  'preference:read',
+  'preference:write',
+  'challenge:read',
+  'challenge:write',
+  'board:play',
+  'puzzle:read',
+  'puzzle:write',
+  'study:read',
+  'study:write',
+  'follow:read',
+  'follow:write',
+  'team:read',
+  'msg:write',
+];
 
 /// Thrown when the user dismisses the OAuth session before completing it.
 ///
