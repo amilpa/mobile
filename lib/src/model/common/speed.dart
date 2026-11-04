@@ -29,6 +29,13 @@ enum Speed {
     }
   }
 
+  /// Whether lobby games of this speed can be created.
+  ///
+  /// Games are played through the Board API, whose seeks only allow rapid, classical and
+  /// correspondence games.
+  bool get isLobbySupported =>
+      this == Speed.rapid || this == Speed.classical || this == Speed.correspondence;
+
   String label(AppLocalizations l10n) {
     switch (this) {
       case Speed.ultraBullet:

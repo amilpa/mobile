@@ -12,7 +12,6 @@ import 'package:material_ui/material_ui.dart';
 class const TimeControlModal({
   required final TimeIncrement timeIncrement,
   required final ValueSetter<TimeIncrement> onSelected,
-  final bool excludeUltraBullet = false,
   super.key,
 }) extends StatelessWidget {
   static const _horizontalPadding = EdgeInsets.symmetric(horizontal: 16.0);
@@ -65,30 +64,8 @@ class const TimeControlModal({
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _SectionChoices(
-                  timeIncrement,
-                  choices: [
-                    if (!excludeUltraBullet) const TimeIncrement(0, 1),
-                    const TimeIncrement(60, 0),
-                    const TimeIncrement(60, 1),
-                    const TimeIncrement(120, 1),
-                  ],
-                  title: _SectionTitle(title: context.l10n.bullet, icon: LichessIcons.bullet),
-                  onSelected: onSelected,
-                ),
-                _sectionSpacing,
-                _SectionChoices(
-                  timeIncrement,
-                  choices: const [
-                    TimeIncrement(180, 0),
-                    TimeIncrement(180, 2),
-                    TimeIncrement(300, 0),
-                    TimeIncrement(300, 3),
-                  ],
-                  title: _SectionTitle(title: context.l10n.blitz, icon: LichessIcons.blitz),
-                  onSelected: onSelected,
-                ),
-                _sectionSpacing,
+                // No bullet or blitz: lobby games are played through the Board API, which only
+                // allows rapid and classical real-time games.
                 _SectionChoices(
                   timeIncrement,
                   choices: const [
@@ -198,8 +175,18 @@ class const TimeControlModal({
                                   },
                                 ),
                               ),
+                              if (!custom.isInfinite && !custom.speed.isLobbySupported)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    'Only rapid and classical games are available.',
+                                    style: TextStyle(color: textShade(context, 0.7)),
+                                  ),
+                                ),
                               FilledButton(
-                                onPressed: custom.isInfinite ? null : () => onSelected(custom),
+                                onPressed: custom.isInfinite || !custom.speed.isLobbySupported
+                                    ? null
+                                    : () => onSelected(custom),
                                 child: Text(context.l10n.mobileOkButton, style: Styles.bold),
                               ),
                             ],

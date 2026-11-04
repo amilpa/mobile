@@ -7,6 +7,7 @@ import 'package:lichess_mobile/src/model/challenge/challenge.dart';
 import 'package:lichess_mobile/src/model/challenge/challenge_preferences.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/game.dart';
+import 'package:lichess_mobile/src/model/common/speed.dart';
 import 'package:lichess_mobile/src/model/common/time_increment.dart';
 import 'package:lichess_mobile/src/model/lobby/game_setup_preferences.dart';
 import 'package:lichess_mobile/src/model/user/user.dart';
@@ -67,10 +68,17 @@ class _CreateChallengeBottomSheetState() extends ConsumerState<CreateChallengeBo
     final preferences = ref.watch(challengePreferencesProvider);
     final createGameService = ref.watch(createGameServiceProvider);
 
+    // The Board API, through which games are played, allows blitz and slower challenges only.
+    final clockSpeed = TimeIncrement(
+      preferences.clock.time.inSeconds,
+      preferences.clock.increment.inSeconds,
+    ).speed;
+    final isBulletClock = clockSpeed == Speed.bullet || clockSpeed == Speed.ultraBullet;
+
     final isValidTimeControl =
         preferences.timeControl != ChallengeTimeControlType.clock ||
-        preferences.clock.time > Duration.zero ||
-        preferences.clock.increment > Duration.zero;
+        ((preferences.clock.time > Duration.zero || preferences.clock.increment > Duration.zero) &&
+            !isBulletClock);
 
     final isValidPosition =
         (fromPositionFenInput != null && fromPositionFenInput!.isNotEmpty) ||
@@ -189,6 +197,14 @@ class _CreateChallengeBottomSheetState() extends ConsumerState<CreateChallengeBo
                   );
                 },
               ),
+              if (isBulletClock)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    'Bullet games are not available, choose a slower time control.',
+                    style: TextStyle(color: textShade(context, 0.7)),
+                  ),
+                ),
             ] else if (timeControl == ChallengeTimeControlType.correspondence) ...[
               Builder(
                 builder: (context) {

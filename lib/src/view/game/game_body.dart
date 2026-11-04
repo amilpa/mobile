@@ -570,7 +570,6 @@ class const _GamePlayerTable({
     return GamePlayer(
       game: game,
       side: side,
-      socketUri: GameController.socketUri(data.gameFullId),
       matchupScore: matchupData?.users[sideUser!.id],
       materialDiff: boardPrefs.materialDifferenceFormat.visible
           ? game.materialDiffAt(data.stepCursor, side)

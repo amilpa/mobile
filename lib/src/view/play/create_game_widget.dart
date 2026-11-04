@@ -21,7 +21,11 @@ import 'package:material_ui/material_ui.dart';
 class const CreateGameWidget() extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playPrefs = ref.watch(gameSetupPreferencesProvider);
+    final savedPrefs = ref.watch(gameSetupPreferencesProvider);
+    // A time control saved when bullet and blitz were still available falls back to the default.
+    final playPrefs = savedPrefs.timeIncrement.speed.isLobbySupported
+        ? savedPrefs
+        : savedPrefs.copyWith(timeIncrement: GameSetupPrefs.defaults.timeIncrement);
     final connectionStatus = ref.watch(lichessConnectionStatusProvider);
     final account = ref.watch(accountProvider).value;
     final userPerf = account?.perfs[playPrefs.realTimePerf];

@@ -201,7 +201,10 @@ class const _ChoiceChip({
 
 Future<void> showTimeControlPicker(BuildContext context, WidgetRef ref) {
   final homePrefs = ref.read(homePreferencesProvider);
-  final disabledControls = Set<TimeIncrement>.from(homePrefs.disabledTimeControls);
+  // Ignore saved presets that no longer exist.
+  final disabledControls = Set<TimeIncrement>.from(
+    homePrefs.disabledTimeControls.where(TimeIncrement.matrixPresets.contains),
+  );
   var customEnabled = homePrefs.customButtonEnabled;
 
   final grouped = groupBy(TimeIncrement.matrixPresets, (tc) => tc.speed);

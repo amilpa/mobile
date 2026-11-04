@@ -154,8 +154,6 @@ class _GameScreenState() extends ConsumerState<GameScreen> {
           _isRealTimePlayableGameProvider(createdGameId).select((s) => s.value ?? false),
         );
 
-        final socketUri = GameController.socketUri(createdGameId);
-
         final body = PopScope(
           canPop: isRealTimePlayingGame != true,
           child: SafeArea(
@@ -199,11 +197,9 @@ class _GameScreenState() extends ConsumerState<GameScreen> {
         return Scaffold(
           resizeToAvoidBottomInset: false,
           appBar: AppBar(
-            leading: isRealTimePlayingGame ? SocketPingRatingIcon(socketUri: socketUri) : null,
+            // No connection indicator: the game is played through the Board API, not a socket.
             title: _GameTitle(
               _StandaloneTitleVariant(id: createdGameId, lastMoveAt: widget.lastMoveAt),
-              monitorSocket: isRealTimePlayingGame,
-              socketUri: socketUri,
             ),
             actions: [_GameMenu(gameId: createdGameId)],
           ),

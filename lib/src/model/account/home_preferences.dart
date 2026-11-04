@@ -47,9 +47,9 @@ class HomePreferences() extends Notifier<HomePrefs> with SessionPreferencesStora
     required IList<TimeIncrement> disabledTimeControls,
     required bool customButtonEnabled,
   }) {
+    // Count from the presets, as the saved list may hold presets that no longer exist.
     final enabledCount =
-        TimeIncrement.matrixPresets.length -
-        disabledTimeControls.length +
+        TimeIncrement.matrixPresets.where((tc) => !disabledTimeControls.contains(tc)).length +
         (customButtonEnabled ? 1 : 0);
     if (enabledCount < 1) return Future.value();
     return save(

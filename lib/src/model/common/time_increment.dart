@@ -63,18 +63,19 @@ class TimeIncrement implements Comparable<TimeIncrement> {
     return estimatedDuration.compareTo(other.estimatedDuration);
   }
 
+  /// Quick pairing presets.
+  ///
+  /// Only rapid and classical, the real-time speeds the Board API allows for lobby games.
   static const matrixPresets = [
-    TimeIncrement(60, 0),
-    TimeIncrement(120, 1),
-    TimeIncrement(180, 0),
-    TimeIncrement(180, 2),
-    TimeIncrement(300, 0),
-    TimeIncrement(300, 3),
     TimeIncrement(600, 0),
     TimeIncrement(600, 5),
+    TimeIncrement(900, 0),
     TimeIncrement(900, 10),
+    TimeIncrement(1200, 0),
+    TimeIncrement(1500, 0),
     TimeIncrement(1800, 0),
     TimeIncrement(1800, 20),
+    TimeIncrement(2700, 15),
   ];
 
   static const presets = [

@@ -12,6 +12,7 @@ import 'package:lichess_mobile/src/binding.dart';
 import 'package:lichess_mobile/src/model/account/account_preferences.dart';
 import 'package:lichess_mobile/src/model/account/ongoing_games_notifier.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
+import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/challenge/challenge_repository.dart';
 import 'package:lichess_mobile/src/model/chat/chat.dart';
 import 'package:lichess_mobile/src/model/chat/chat_mixin.dart';
@@ -20,9 +21,9 @@ import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/socket.dart';
 import 'package:lichess_mobile/src/model/common/speed.dart';
+import 'package:lichess_mobile/src/model/game/board_api_game_connection.dart';
 import 'package:lichess_mobile/src/model/game/exported_game.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
-import 'package:lichess_mobile/src/model/game/game_preferences.dart';
 import 'package:lichess_mobile/src/model/game/game_repository.dart';
 import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
 import 'package:lichess_mobile/src/model/game/game_status.dart';
@@ -30,7 +31,7 @@ import 'package:lichess_mobile/src/model/game/game_storage.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
-import 'package:lichess_mobile/src/network/socket.dart';
+import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/service/account_service.dart';
 import 'package:lichess_mobile/src/service/correspondence_service.dart';
 import 'package:lichess_mobile/src/service/move_feedback.dart';
@@ -99,16 +100,16 @@ class GameController(final GameFullId gameFullId)
 
   final _onFlagThrottler = Throttler(const Duration(milliseconds: 500));
 
-  /// Whether the app was put in background since the previous move was sent.
-  bool _wasInBackground = false;
-
+  /// Route of the `/play` socket of a game.
+  ///
+  /// The game itself is played through the Board API (see [BoardApiGameConnection]): this is only
+  /// kept for the iOS Live Activity, which never finds this socket open and so shows the game as
+  /// not connected.
   static Uri socketUri(GameFullId gameFullId) => Uri(path: '/play/$gameFullId/v6');
-
-  SocketPool get _socketPool => ref.read(socketPoolProvider);
 
   ChessClock? _clock;
 
-  late SocketClient _socketClient;
+  late BoardApiGameConnection _connection;
 
   GameRepository get _gameRepository => ref.read(gameRepositoryProvider);
 
@@ -130,7 +131,11 @@ class GameController(final GameFullId gameFullId)
 
   @override
   Future<GameState> build() async {
-    _socketClient = _openSocket();
+    _connection = BoardApiGameConnection(
+      client: () => ref.read(lichessClientProvider),
+      gameFullId: gameFullId,
+      myUserId: ref.read(authControllerProvider)?.user.id,
+    );
 
     _onFullReload = () {
       _logger.warning('full reload triggered');
@@ -139,6 +144,7 @@ class GameController(final GameFullId gameFullId)
 
     ref.onDispose(() {
       _socketSubscription?.cancel();
+      _connection.dispose();
       _transientMoveTimer?.cancel();
       _clock?.dispose();
       _clock = null;
@@ -147,21 +153,26 @@ class GameController(final GameFullId gameFullId)
     });
 
     // The initial 'full' event is awaited through the controller's own subscription, so that
-    // cancelling it on dispose always releases the socket client. A `stream.firstWhere` would add a
-    // second listener that outlives the controller when the event never arrives (socket unable to
-    // connect), keeping the client alive and reconnecting in the background forever.
+    // cancelling it on dispose always releases the connection.
     final fullEventCompleter = Completer<SocketEvent>();
     _socketSubscription?.cancel();
-    _socketSubscription = _socketClient.stream.listen((event) {
-      handleSocketEvent(event);
-      if (event.topic == 'full' && !fullEventCompleter.isCompleted) {
-        fullEventCompleter.complete(event);
-      }
-    });
+    _socketSubscription = _connection.stream.listen(
+      (event) {
+        handleSocketEvent(event);
+        if (event.topic == 'full' && !fullEventCompleter.isCompleted) {
+          fullEventCompleter.complete(event);
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (!fullEventCompleter.isCompleted) {
+          fullEventCompleter.completeError(error, stackTrace);
+        }
+      },
+    );
+    _connection.connect();
 
     final rawFullEvent = await fullEventCompleter.future;
     final fullEvent = GameFullEvent.fromJson(rawFullEvent.data as Map<String, dynamic>);
-    _socketClient.version = fullEvent.socketEventVersion;
 
     final game = fullEvent.game.prefs != null
         ? fullEvent.game
@@ -205,45 +216,31 @@ class GameController(final GameFullId gameFullId)
       stepCursor: game.steps.length - 1,
       liveClock: _clock != null ? (white: _clock!.whiteTime, black: _clock!.blackTime) : null,
       chatState: await initChat(game.chat),
-      chatDisabledViaPrefs: ref.read(gamePreferencesProvider).enableChat == false,
+      // The Board API has no game chat.
+      chatDisabledViaPrefs: true,
     );
   }
 
   @override
   void onForegroundLost() {
-    if (_socketClient.isDisposed) {
-      assert(false, 'socket client should not be disposed here');
-      return;
-    }
+    if (_connection.isDisposed) return;
     if (!state.hasValue || !state.requireValue.game.playable) {
       return;
     }
 
-    _wasInBackground = true;
-
-    // real time games need the socket to stay connected otherwise lichess will think the player left
-    // correspondence games can and should close the socket when the app is in background (because lichess won't send the push notification update when the player is still connected to the socket)
+    // Real time games keep their stream open, otherwise lichess would think the player left.
+    // Correspondence games close it, so that lichess sends the push notifications.
     if (state.requireValue.game.meta.speed == Speed.correspondence) {
-      _socketClient.close();
+      _connection.close();
     }
   }
 
   @override
   void onFocusRegained() {
-    if (_socketClient.isDisposed) {
-      assert(false, 'socket client should not be disposed here');
-      return;
-    }
+    if (_connection.isDisposed || !state.hasValue) return;
 
-    if (!state.hasValue) {
-      return;
-    }
-
-    final currentClient = ref.read(socketPoolProvider).currentClient;
-    if (currentClient.route != _socketClient.route) {
-      _socketClient = _openSocket();
-    } else if (!_socketClient.isConnected) {
-      _socketClient.connect();
+    if (!_connection.isConnected) {
+      _connection.connect();
     }
   }
 
@@ -285,13 +282,7 @@ class GameController(final GameFullId gameFullId)
 
     _playMoveFeedback(sanMove, skipAnimationDelay: viaDragAndDrop ?? false);
 
-    _sendMoveToSocket(
-      move,
-      isPremove: isPremove ?? false,
-      // same logic as web client
-      // we want to send client lag only at the beginning of the game when the clock is not running yet
-      withLag: curState.game.clock != null && curState.activeClockSide == null,
-    );
+    _sendMove(move);
   }
 
   /// Called if the player cancels the move when confirm move preference is enabled
@@ -350,13 +341,7 @@ class GameController(final GameFullId gameFullId)
         moveToConfirm: null,
       ),
     );
-    _sendMoveToSocket(
-      moveToConfirm,
-      isPremove: false,
-      // same logic as web client
-      // we want to send client lag only at the beginning of the game when the clock is not running yet
-      withLag: curState.game.clock != null && curState.activeClockSide == null,
-    );
+    _sendMove(moveToConfirm);
   }
 
   void cursorAt(int cursor) {
@@ -465,66 +450,68 @@ class GameController(final GameFullId gameFullId)
     }
   }
 
+  /// The Board API has no flag action: the server ends the game on its own, so this only resyncs
+  /// the game shortly after a clock ran out, in case the end of the game was missed.
   void onFlag() {
     _onFlagThrottler(() {
-      if (state.hasValue) {
-        _socketClient.send('flag', state.requireValue.game.sideToMove.name);
-      }
+      Timer(const Duration(seconds: 2), () {
+        if (ref.mounted && state.value?.game.playable == true) _reloadGame();
+      });
     });
   }
 
   void moreTime() {
-    _socketClient.send('moretime', null);
+    _connection.send('moretime');
   }
 
   void berserk() {
     if (state.value?.canBerserk == true && state.value?.hasBerserked == false) {
-      _socketClient.send('berserk', null);
+      _connection.send('berserk');
     }
   }
 
   void abortGame() {
-    _socketClient.send('abort', null);
+    _connection.send('abort');
   }
 
   void resignGame() {
-    _socketClient.send('resign', null);
+    _connection.send('resign');
   }
 
   void forceResign() {
-    _socketClient.send('resign-force', null);
+    _connection.send('resign-force');
   }
 
   void forceDraw() {
-    _socketClient.send('draw-force', null);
+    _connection.send('draw-force');
   }
 
   void claimDraw() {
-    _socketClient.send('draw-claim', null);
+    _connection.send('draw-claim');
   }
 
   void offerOrAcceptDraw() {
-    _socketClient.send('draw-yes', null);
+    _connection.send('draw-yes');
   }
 
   void cancelOrDeclineDraw() {
-    _socketClient.send('draw-no', null);
+    _connection.send('draw-no');
   }
 
   void offerTakeback() {
-    _socketClient.send('takeback-yes', null);
+    _connection.send('takeback-yes');
   }
 
   void acceptTakeback() {
-    _socketClient.send('takeback-yes', null);
+    _connection.send('takeback-yes');
   }
 
   void cancelOrDeclineTakeback() {
-    _socketClient.send('takeback-no', null);
+    _connection.send('takeback-no');
   }
 
   void proposeOrAcceptRematch() {
-    _socketClient.send('rematch-yes', null);
+    _connection.send('rematch-yes');
   }
 
   Future<void> challengeRematch() async {
@@ -549,17 +536,7 @@ class GameController(final GameFullId gameFullId)
   }
 
   void declineRematch() {
-    _socketClient.send('rematch-no', null);
-  }
-
-  SocketClient _openSocket() {
-    return _socketPool.open(
-      socketUri(gameFullId),
-      forceReconnect: true,
-      onEventGapFailure: () {
-        _onFullReload?.call();
-      },
-    );
+    _connection.send('rematch-no');
   }
 
   /// Update the internal clock on clock server event
@@ -577,32 +554,9 @@ class GameController(final GameFullId gameFullId)
     }
   }
 
-  void _sendMoveToSocket(Move move, {required bool isPremove, required bool withLag}) {
-    final thinkTime = _clock?.stop();
-    final moveTime = _clock != null
-        ? isPremove == true
-              ? Duration.zero
-              : thinkTime
-        : null;
-
-    final (topic, data) = switch (move) {
-      NormalMove() => ('move', {'u': move.uci}),
-      DropMove(:final role, :final to) => ('drop', {'role': role.name, 'pos': to.name}),
-    };
-
-    final withBlur = _wasInBackground;
-    _wasInBackground = false;
-    _socketClient.send(
-      topic,
-      {
-        ...data,
-        if (moveTime != null) 's': (moveTime.inMilliseconds * 0.1).round().toRadixString(36),
-        if (withBlur) 'b': 1,
-      },
-      ackable: true,
-      withLag: _clock != null && (moveTime == null || withLag),
-    );
-
+  void _sendMove(Move move) {
+    _clock?.stop();
+    _connection.sendMove(move);
     _transientMoveTimer = Timer(const Duration(seconds: 10), _reloadGame);
   }
 
@@ -646,7 +600,8 @@ class GameController(final GameFullId gameFullId)
   /// Reload game
   void _reloadGame() {
     _logger.info('Reloading game data');
-    _socketClient.connect();
+    // The game stream always starts with the full game.
+    _connection.connect();
   }
 
   @protected
@@ -679,7 +634,6 @@ class GameController(final GameFullId gameFullId)
       // First message sent when the socket is reconnected
       case 'full':
         final fullEvent = GameFullEvent.fromJson(event.data as Map<String, dynamic>);
-        _socketClient.version = fullEvent.socketEventVersion;
 
         // The resync replaces our steps with the server's authoritative ones, so
         // any optimistically-applied move is now either confirmed or gone: clear

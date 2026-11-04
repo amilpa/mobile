@@ -1,6 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
+import 'package:lichess_mobile/src/model/auth/bearer.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/utils/cache.dart';
 import 'package:lichess_mobile/src/utils/json.dart';
@@ -35,7 +37,15 @@ typedef CachedAggregatorRequest = ({Uri targetGroupUri, Future<Map<String, dynam
 
 /// A provider for the [Aggregator] service.
 final aggregatorProvider = Provider<Aggregator>((ref) {
-  return Aggregator(ref.watch(lichessClientProvider));
+  return Aggregator(
+    ref.watch(lichessClientProvider),
+    // The aggregated endpoints are under /api/mobile and require the web:mobile scope, which a
+    // personal API token cannot have.
+    isAggregationDisabled: () {
+      final authUser = ref.read(authControllerProvider);
+      return authUser != null && isPersonalToken(authUser.token);
+    },
+  );
 }, name: 'AggregatorProvider');
 
 /// Aggregator is used to group multiple requests to the same endpoint.
@@ -54,6 +64,9 @@ final aggregatorProvider = Provider<Aggregator>((ref) {
 class Aggregator(
   final LichessClient client, {
   final Duration aggregationInterval = kAggregationInterval,
+
+  /// When it returns true, every request is made atomically.
+  final bool Function()? isAggregationDisabled,
 }) {
   (Future<void>, ISet<Uri>)? _pending;
 
@@ -109,7 +122,7 @@ class Aggregator(
   }) async {
     // Aggregation is disabled for widget tests to avoid dealing with timer and extra complexity.
     // The Aggregator is tested on its own.
-    if (aggregationInterval == Duration.zero) {
+    if (aggregationInterval == Duration.zero || (isAggregationDisabled?.call() ?? false)) {
       return await atomicClientCall();
     }
 
