@@ -163,8 +163,17 @@ class AuthRepository(final Ref _ref, final FlutterAppAuth _appAuth) {
     return AuthUser(token: token, user: user.lightUser);
   }
 
+  /// Signs in with a personal API token created at https://lichess.org/account/oauth/token.
+  Future<AuthUser> signInWithPersonalToken(String token) {
+    return _fetchAuthUser(token.trim());
+  }
+
   /// Sign out the current user by revoking the auth token.
-  Future<void> signOut() async {
+  ///
+  /// Personal API tokens of [authUser] are not revoked, so that signing out does not destroy a
+  /// token the user created themselves and may want to paste again.
+  Future<void> signOut(AuthUser? authUser) async {
+    if (authUser != null && isPersonalToken(authUser.token)) return;
     await _client.deleteRead(Uri(path: '/api/token'));
   }
 

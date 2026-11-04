@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
+import 'package:lichess_mobile/src/view/auth/api_token_dialog.dart';
 import 'package:lichess_mobile/src/view/auth/email_login_screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_action_sheet.dart';
 import 'package:material_ui/material_ui.dart';
@@ -34,6 +35,21 @@ Future<void> showSignInOptions(BuildContext context, WidgetRef ref) {
         leading: const Icon(Icons.mail_outline),
         onPressed: () {
           navigator.push(EmailLoginScreen.buildRoute());
+        },
+      ),
+      BottomSheetAction(
+        makeLabel: (context) => const Text('Sign in with API token'),
+        leading: const Icon(Icons.key),
+        onPressed: () async {
+          final token = await showDialog<String>(
+            context: navigator.context,
+            builder: (_) => const ApiTokenDialog(),
+          );
+          if (token == null) return;
+          // Same error handling as the browser flow, see above.
+          signInMutation.run(ref, (tsx) async {
+            await tsx.get(authControllerProvider.notifier).signInWithPersonalToken(token);
+          }).ignore();
         },
       ),
     ],

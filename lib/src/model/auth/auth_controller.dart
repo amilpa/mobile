@@ -50,6 +50,12 @@ class AuthController() extends Notifier<AuthUser?> {
     await _onSignedIn(authUser);
   }
 
+  /// Signs in the user with a personal API [token].
+  Future<void> signInWithPersonalToken(String token) async {
+    final authUser = await ref.read(authRepositoryProvider).signInWithPersonalToken(token);
+    await _onSignedIn(authUser);
+  }
+
   /// Asks lichess to email a login code for the [username] account to [email].
   Future<void> requestEmailLoginCode({required String username, required String email}) {
     return ref.read(authRepositoryProvider).requestEmailLoginCode(username: username, email: email);
@@ -81,7 +87,7 @@ class AuthController() extends Notifier<AuthUser?> {
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
     _authEventsController.add(AuthEvent.signOut);
-    await ref.read(authRepositoryProvider).signOut();
+    await ref.read(authRepositoryProvider).signOut(state);
     await ref.read(authStorageProvider).delete();
     if (!ref.mounted) return;
     state = null;
