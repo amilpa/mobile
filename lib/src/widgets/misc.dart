@@ -16,10 +16,6 @@ class const AppBarLichessTitle({super.key, final double iconSize = 24}) extends 
             child: Icon(LichessIcons.logo_lichess, size: iconSize),
           ),
           const TextSpan(text: ' lichess'),
-          TextSpan(
-            text: '.org',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
-          ),
         ],
       ),
       maxLines: 1,

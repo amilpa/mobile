@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,11 +265,23 @@ class _AppState() extends ConsumerState<Application> {
 class const _BouncingScrollBehavior() extends MaterialScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) =>
-      const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics());
+      const _StretchyScrollPhysics(parent: AlwaysScrollableScrollPhysics());
 
   @override
   Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
     // The bounce already shows the edge: no glow or stretch on top of it.
     return child;
   }
+}
+
+/// [BouncingScrollPhysics] that lets the content go further past its edges.
+class const _StretchyScrollPhysics({super.parent}) extends BouncingScrollPhysics {
+  @override
+  _StretchyScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      _StretchyScrollPhysics(parent: buildParent(ancestor));
+
+  /// The resistance of the overscroll: the default is 0.52 times the same curve.
+  @override
+  double frictionFactor(double overscrollFraction) =>
+      0.75 * math.pow(1 - overscrollFraction, 2).toDouble();
 }

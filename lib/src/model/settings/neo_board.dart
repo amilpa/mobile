@@ -6,13 +6,11 @@ import 'package:material_ui/material_ui.dart';
 
 // Boards and piece sets of LichessNeo (MIT, Théophile Wallez), see `assets/neo/LICENSE`.
 
-/// Size at which a board texture is decoded on the board.
-///
-/// The textures are 2048px wide: decoding them at full size would take 16MB each.
-const _kBoardTextureSize = 1024;
-
 /// Size at which a board texture is decoded in thumbnails.
-const _kThumbnailTextureSize = 256;
+///
+/// The textures are bundled at 1024px, downscaled from LichessNeo's 2048px, which is plenty for
+/// a phone board.
+const _kThumbnailTextureSize = 512;
 
 /// A LichessNeo material board: a grey relief texture blended over two square colors.
 enum NeoBoard(final String label, final Color lightSquare, final Color darkSquare) {
@@ -46,7 +44,7 @@ enum NeoBoard(final String label, final Color lightSquare, final Color darkSquar
 
   AssetImage get _texture => AssetImage('assets/neo/boards/$_fileName.webp');
 
-  ImageProvider get boardTexture => ResizeImage(_texture, width: _kBoardTextureSize);
+  ImageProvider get boardTexture => _texture;
 
   ImageProvider get thumbnailTexture => ResizeImage(_texture, width: _kThumbnailTextureSize);
 
@@ -257,13 +255,22 @@ class _TexturedCheckerPainter extends CustomPainter {
       }
     }
     if (texture != null) {
-      paintImage(
-        canvas: canvas,
-        rect: rect,
-        image: texture!,
-        fit: BoxFit.cover,
-        blendMode: BlendMode.hardLight,
-        filterQuality: FilterQuality.medium,
+      // The texture is cut into the 8x8 squares of a board, each with its own shading: only as
+      // many of its squares as painted are drawn, so that they line up with the painted ones.
+      final image = texture!;
+      final source = Rect.fromLTWH(
+        0,
+        0,
+        image.width * files / 8,
+        image.height * ranks / 8,
+      );
+      canvas.drawImageRect(
+        image,
+        source,
+        rect,
+        Paint()
+          ..blendMode = BlendMode.hardLight
+          ..filterQuality = FilterQuality.medium,
       );
     }
     canvas.restore();

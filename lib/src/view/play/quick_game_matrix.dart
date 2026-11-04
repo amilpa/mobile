@@ -23,11 +23,6 @@ class const QuickGameMatrix({super.key}) extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playban = ref.watch(accountProvider).value?.playban;
-    final brightness = Theme.of(context).brightness;
-    final logoColor = brightness == Brightness.light
-        ? const Color(0x0F000000)
-        : const Color(0x80FFFFFF);
-    final scaffoldOpacity = Theme.of(context).scaffoldBackgroundColor.a;
 
     if (playban != null) {
       return PlaybanMessage(playban: playban);
@@ -52,31 +47,20 @@ class const QuickGameMatrix({super.key}) extends ConsumerWidget {
       children: [
         Text(context.l10n.quickPairing, style: Styles.sectionTitle),
         const SizedBox(height: 6.0),
-        Container(
-          decoration: scaffoldOpacity != 0
-              ? BoxDecoration(
-                  image: DecorationImage(
-                    colorFilter: ColorFilter.mode(logoColor, BlendMode.modulate),
-                    image: const AssetImage('assets/images/logo-transp.webp'),
-                    fit: BoxFit.contain,
-                  ),
-                )
-              : null,
-          child: Column(
-            children: [
-              for (final (index, row) in rows.indexed) ...[
-                if (index > 0) const SizedBox(height: _kMatrixSpacing),
-                _SectionChoices(
-                  choices: row,
-                  showCustom: showCustom && index == rows.length - 1 && row.length < 3,
-                ),
-              ],
-              if (showCustom && rows.every((r) => r.length >= 3)) ...[
-                const SizedBox(height: _kMatrixSpacing),
-                const _SectionChoices(choices: [], showCustom: true),
-              ],
+        Column(
+          children: [
+            for (final (index, row) in rows.indexed) ...[
+              if (index > 0) const SizedBox(height: _kMatrixSpacing),
+              _SectionChoices(
+                choices: row,
+                showCustom: showCustom && index == rows.length - 1 && row.length < 3,
+              ),
             ],
-          ),
+            if (showCustom && rows.every((r) => r.length >= 3)) ...[
+              const SizedBox(height: _kMatrixSpacing),
+              const _SectionChoices(choices: [], showCustom: true),
+            ],
+          ],
         ),
       ],
     );

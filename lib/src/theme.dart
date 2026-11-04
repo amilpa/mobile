@@ -180,15 +180,21 @@ ThemeData _makeDefaultTheme(
   final textTheme = isIOS ? kCupertinoDefaultTextTheme : null;
   final theme = ThemeData.from(colorScheme: colorScheme, textTheme: textTheme);
   final isDark = brightness == Brightness.dark;
+  final barColor = isDark
+      ? theme.colorScheme.surfaceContainerHigh
+      : theme.colorScheme.surfaceContainer;
 
   final finalTheme = theme.copyWith(
     cupertinoOverrideTheme: _makeCupertinoThemeData(theme.colorScheme, brightness),
     splashFactory: isIOS ? NoSplash.splashFactory : null,
     appBarTheme: _appBarTheme.copyWith(
+      // The same color as the bottom navigation bar (see FloatingNavBar), so that the header
+      // stands out from the page.
       backgroundColor: isIOS
           ? theme.colorScheme.surface.withValues(alpha: kCupertinoBarOpacity)
-          : null,
-      scrolledUnderElevation: isIOS ? 0 : null,
+          : barColor,
+      surfaceTintColor: isIOS ? null : Colors.transparent,
+      scrolledUnderElevation: 0,
       titleTextStyle: isIOS
           ? const CupertinoTextThemeData().navTitleTextStyle.copyWith(
               color: theme.colorScheme.onSurface,
@@ -228,14 +234,21 @@ ThemeData _makeDefaultTheme(
         : null,
     dialogTheme: isIOS
         ? _kCupertinoDialogTheme
+        // Popups float over the page, so they are rounder than the cards in it.
         : const DialogThemeData(
-            shape: RoundedRectangleBorder(borderRadius: Styles.cardBorderRadius),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(28))),
           ),
     filledButtonTheme: isIOS ? _kCupertinoFilledButtonTheme : _kNeoFilledButtonTheme,
     outlinedButtonTheme: isIOS ? _kCupertinoOutlinedButtonTheme : _kNeoOutlinedButtonTheme,
     textButtonTheme: isIOS ? null : _kNeoTextButtonTheme,
     menuTheme: isIOS ? _kCupertinoMenuThemeData : null,
-    bottomSheetTheme: isIOS ? _kCupertinoBottomSheetTheme : null,
+    bottomSheetTheme: isIOS
+        ? _kCupertinoBottomSheetTheme
+        : const BottomSheetThemeData(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+          ),
     sliderTheme: kSliderTheme,
     extensions: [lichessCustomColors.harmonized(theme.colorScheme)],
   );
@@ -245,10 +258,7 @@ ThemeData _makeDefaultTheme(
   // Flat background with no tint when scrolling, as LichessNeo's pages.
   return finalTheme.copyWith(
     scaffoldBackgroundColor: theme.colorScheme.surface,
-    appBarTheme: finalTheme.appBarTheme.copyWith(
-      backgroundColor: isIOS ? finalTheme.appBarTheme.backgroundColor : theme.colorScheme.surface,
-      surfaceTintColor: Colors.transparent,
-    ),
+    appBarTheme: finalTheme.appBarTheme.copyWith(surfaceTintColor: Colors.transparent),
     bottomAppBarTheme: finalTheme.bottomAppBarTheme.copyWith(color: theme.colorScheme.surface),
     dividerTheme: DividerThemeData(color: theme.colorScheme.outlineVariant, thickness: 0.5),
   );

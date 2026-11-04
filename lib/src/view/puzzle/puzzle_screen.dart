@@ -898,7 +898,8 @@ class const _PuzzleSettingsBottomSheet(final PuzzleContext initialPuzzleContext)
     final isFillingQueue = ref.watch(puzzleQueueFillerProvider);
 
     return BottomSheetScrollableContainer(
-      padding: const EdgeInsets.only(bottom: 16),
+      // Room above the title, under the rounded top of the sheet.
+      padding: const EdgeInsets.only(top: 20, bottom: 16),
       children: [
         ListSection(
           header: Text(context.l10n.settingsSettings),

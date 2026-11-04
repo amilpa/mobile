@@ -18,6 +18,8 @@ class const FloatingPlayButton({super.key}) extends ConsumerWidget {
         );
       },
       tooltip: context.l10n.play,
+      // Fully rounded, as the bottom navigation bar below it.
+      shape: const StadiumBorder(),
       icon: const Icon(Symbols.chess_pawn_rounded),
       label: Text(context.l10n.play),
     );

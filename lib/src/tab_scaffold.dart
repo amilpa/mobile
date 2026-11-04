@@ -130,7 +130,11 @@ class const _TabSwitchingView({
   _TabSwitchingViewState createState() => _TabSwitchingViewState();
 }
 
-class _TabSwitchingViewState() extends State<_TabSwitchingView> {
+/// Duration of the fade in of a tab when switching to it.
+const _kTabFadeDuration = Duration(milliseconds: 220);
+
+class _TabSwitchingViewState() extends State<_TabSwitchingView>
+    with SingleTickerProviderStateMixin {
   final List<bool> shouldBuildTab = <bool>[];
   final List<FocusScopeNode> tabFocusNodes = <FocusScopeNode>[];
 
@@ -139,6 +143,21 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView> {
   // disposed of, so when they are no longer needed, we move them to this list,
   // and dispose of them when we dispose of this widget.
   final List<FocusScopeNode> discardedNodes = <FocusScopeNode>[];
+
+  /// Fades the newly selected tab in, rather than switching abruptly.
+  late final AnimationController _fadeController = AnimationController(
+    vsync: this,
+    duration: _kTabFadeDuration,
+    value: 1.0,
+  );
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _fadeController,
+    curve: Curves.easeOut,
+  );
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.015),
+    end: Offset.zero,
+  ).animate(_fade);
 
   @override
   void initState() {
@@ -155,6 +174,9 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView> {
   @override
   void didUpdateWidget(_TabSwitchingView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentTab != widget.currentTab) {
+      _fadeController.forward(from: 0.0);
+    }
     _focusActiveTab();
   }
 
@@ -186,6 +208,7 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView> {
     for (final FocusScopeNode focusScopeNode in discardedNodes) {
       focusScopeNode.dispose();
     }
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -203,12 +226,22 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView> {
             offstage: !active,
             child: TickerMode(
               enabled: active,
-              child: FocusScope(
-                node: tabFocusNodes[index],
-                child: Builder(
-                  builder: (BuildContext context) {
-                    return shouldBuildTab[index] ? widget.tabBuilder(context, index) : Container();
-                  },
+              // Every tab keeps its transitions, so that switching tabs does not rebuild them:
+              // only the active one is driven by the fade.
+              child: FadeTransition(
+                opacity: active ? _fade : kAlwaysCompleteAnimation,
+                child: SlideTransition(
+                  position: active ? _slide : const AlwaysStoppedAnimation(Offset.zero),
+                  child: FocusScope(
+                    node: tabFocusNodes[index],
+                    child: Builder(
+                      builder: (BuildContext context) {
+                        return shouldBuildTab[index]
+                            ? widget.tabBuilder(context, index)
+                            : Container();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),

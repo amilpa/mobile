@@ -122,6 +122,7 @@ flutter:
     - assets/maia/
     - assets/neo/
     - assets/neo/boards/
+    - assets/neo/coaches/
     - assets/neo/pieces/mochi/
     - assets/neo/pieces/mellow/
     - assets/neo/pieces/poppy/

@@ -22,6 +22,7 @@ import 'package:lichess_mobile/src/view/user/user_or_profile_screen.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/clock.dart';
 import 'package:lichess_mobile/src/widgets/material_diff.dart';
+import 'package:lichess_mobile/src/widgets/neo_avatar.dart';
 import 'package:lichess_mobile/src/widgets/network_image.dart';
 import 'package:lichess_mobile/src/widgets/user.dart';
 import 'package:material_ui/material_ui.dart';
@@ -77,11 +78,18 @@ class const GamePlayer({
                 ? MainAxisAlignment.start
                 : MainAxisAlignment.end,
             children: [
-              if (game.youAre == side)
-                OwnAvatar(
-                  radius: playerFontSize * 0.7,
+              if (player.user != null || player.isAI)
+                Padding(
                   padding: const EdgeInsets.only(right: 6.0),
-                  fallback: const SizedBox.shrink(),
+                  child: game.youAre == side
+                      ? OwnAvatar(
+                          radius: playerFontSize * 0.8,
+                          fallback: NeoAvatar(
+                            name: player.user?.name,
+                            radius: playerFontSize * 0.8,
+                          ),
+                        )
+                      : NeoAvatar(name: player.user?.name, radius: playerFontSize * 0.8),
                 ),
               if (matchupScore != null) ...[
                 Container(
