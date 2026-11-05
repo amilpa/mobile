@@ -866,12 +866,15 @@ class const _PuzzleSettingsButton(final PuzzleContext initialPuzzleContext)
     extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
     return SemanticIconButton(
       onPressed: () => showModalBottomSheet<void>(
         context: context,
         isDismissible: true,
         isScrollControlled: true,
-        constraints: BoxConstraints(minHeight: MediaQuery.heightOf(context) * 0.5),
+        // On Android the sheet is as tall as its settings, under a drag handle.
+        showDragHandle: !isIOS,
+        constraints: isIOS ? BoxConstraints(minHeight: MediaQuery.heightOf(context) * 0.5) : null,
         builder: (_) => _PuzzleSettingsBottomSheet(initialPuzzleContext),
       ),
       semanticsLabel: context.l10n.settingsSettings,
@@ -897,140 +900,189 @@ class const _PuzzleSettingsBottomSheet(final PuzzleContext initialPuzzleContext)
     final isOnline = ref.watch(isDeviceOnlineProvider);
     final isFillingQueue = ref.watch(puzzleQueueFillerProvider);
 
-    return BottomSheetScrollableContainer(
-      // Room above the title, under the rounded top of the sheet.
-      padding: const EdgeInsets.only(top: 20, bottom: 16),
-      children: [
-        ListSection(
-          header: Text(context.l10n.settingsSettings),
-          materialFilledCard: true,
-          children: [
-            SwitchSettingTile(
-              title: Text(context.l10n.sound),
-              value: isSoundEnabled,
-              onChanged: (value) {
-                ref.read(generalPreferencesProvider.notifier).toggleSoundEnabled();
-              },
-            ),
-            if (initialPuzzleContext.userId != null &&
-                initialPuzzleContext.replayRemaining == null &&
-                puzzleState.mode != PuzzleMode.view &&
-                isOnline)
-              StatefulBuilder(
-                builder: (context, setState) {
-                  PuzzleDifficulty selectedDifficulty = difficulty;
-                  return SettingsListTile(
-                    settingsLabel: Text(context.l10n.puzzleDifficultyLevel),
-                    settingsValue: puzzleDifficultyL10n(context, difficulty),
-                    onTap: puzzleState.isChangingDifficulty
-                        ? null
-                        : () {
-                            showChoicePicker(
-                              context,
-                              choices: PuzzleDifficulty.values,
-                              selectedItem: difficulty,
-                              labelBuilder: (t) => Text(puzzleDifficultyL10n(context, t)),
-                              onSelectedItemChanged: (PuzzleDifficulty? d) {
-                                if (d != null) {
-                                  setState(() {
-                                    selectedDifficulty = d;
-                                  });
-                                }
-                              },
-                            ).then((_) async {
-                              if (selectedDifficulty == difficulty) {
-                                return;
-                              }
-                              final nextContext = await ref
-                                  .read(ctrlProvider.notifier)
-                                  .changeDifficulty(selectedDifficulty);
-                              if (context.mounted && nextContext != null) {
-                                ref.read(ctrlProvider.notifier).onLoadPuzzle(nextContext);
-                              }
-                            });
-                          },
-                  );
-                },
-              ),
-            SwitchSettingTile(
-              title: Text(context.l10n.puzzleJumpToNextPuzzleImmediately),
-              value: autoNext,
-              onChanged: (value) {
-                ref.read(puzzlePreferencesProvider.notifier).setAutoNext(value);
-              },
-            ),
-            // Offline queue length is a logged-in-only feature: anonymous
-            // players face a much higher server rate limit for fetching
-            // puzzles, so the setting is hidden for them. It is also limited to
-            // the mix angle (see [isConfigurableOfflineQueueAngle]).
-            if (initialPuzzleContext.userId != null &&
-                isConfigurableOfflineQueueAngle(initialPuzzleContext.angle))
-              SettingsListTile(
-                trailing: isFillingQueue
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-                      )
-                    : null,
-                settingsLabel: Text(context.l10n.mobileNbOfflinePuzzles),
-                settingsValue: nbOfflinePuzzles.toString(),
-                enabled: !isFillingQueue,
-                onTap: isFillingQueue
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+
+    // The rows are the same on both platforms. On Android they have an icon and are grouped, the
+    // puzzle settings first; on iOS they stay a single list without icons.
+    Widget? iconOf(IconData icon) => isIOS ? null : Icon(icon);
+
+    final soundTile = SwitchSettingTile(
+      leading: iconOf(Icons.volume_up_outlined),
+      title: Text(context.l10n.sound),
+      value: isSoundEnabled,
+      onChanged: (value) {
+        ref.read(generalPreferencesProvider.notifier).toggleSoundEnabled();
+      },
+    );
+
+    final difficultyTile =
+        initialPuzzleContext.userId != null &&
+            initialPuzzleContext.replayRemaining == null &&
+            puzzleState.mode != PuzzleMode.view &&
+            isOnline
+        ? StatefulBuilder(
+            builder: (context, setState) {
+              PuzzleDifficulty selectedDifficulty = difficulty;
+              return SettingsListTile(
+                icon: iconOf(Icons.speed_outlined),
+                settingsLabel: Text(context.l10n.puzzleDifficultyLevel),
+                settingsValue: puzzleDifficultyL10n(context, difficulty),
+                onTap: puzzleState.isChangingDifficulty
                     ? null
                     : () {
-                        int selectedNb = nbOfflinePuzzles;
                         showChoicePicker(
                           context,
-                          choices: kOfflinePuzzlesChoices,
-                          selectedItem: nbOfflinePuzzles,
-                          labelBuilder: (t) => Text(t.toString()),
-                          onSelectedItemChanged: (int? nb) {
-                            if (nb != null) {
-                              selectedNb = nb;
+                          choices: PuzzleDifficulty.values,
+                          selectedItem: difficulty,
+                          labelBuilder: (t) => Text(puzzleDifficultyL10n(context, t)),
+                          onSelectedItemChanged: (PuzzleDifficulty? d) {
+                            if (d != null) {
+                              setState(() {
+                                selectedDifficulty = d;
+                              });
                             }
                           },
                         ).then((_) async {
-                          if (selectedNb == nbOfflinePuzzles) {
+                          if (selectedDifficulty == difficulty) {
                             return;
                           }
-                          // Await the save: the fill reads the count from the
-                          // preferences state, so it must be up to date before
-                          // the fill starts, or it would be a silent no-op.
-                          await ref
-                              .read(puzzlePreferencesProvider.notifier)
-                              .setNbOfflinePuzzles(selectedNb);
-                          if (!context.mounted) return;
-                          unawaited(
-                            ref
-                                .read(puzzleQueueFillerProvider.notifier)
-                                .fill(
-                                  userId: initialPuzzleContext.userId,
-                                  angle: initialPuzzleContext.angle,
-                                ),
-                          );
+                          final nextContext = await ref
+                              .read(ctrlProvider.notifier)
+                              .changeDifficulty(selectedDifficulty);
+                          if (context.mounted && nextContext != null) {
+                            ref.read(ctrlProvider.notifier).onLoadPuzzle(nextContext);
+                          }
                         });
                       },
-              ),
-            if (authUser != null && initialPuzzleContext.replayRemaining == null)
-              SwitchSettingTile(
-                title: Text(context.l10n.rated),
-                // ignore: avoid_bool_literals_in_conditional_expressions
-                value: initialPuzzleContext.casual == true ? false : rated,
-                onChanged: initialPuzzleContext.casual == true
-                    ? null
-                    : (value) {
-                        ref.read(puzzlePreferencesProvider.notifier).setRated(value);
+              );
+            },
+          )
+        : null;
+
+    final autoNextTile = SwitchSettingTile(
+      leading: iconOf(Icons.skip_next_outlined),
+      title: Text(context.l10n.puzzleJumpToNextPuzzleImmediately),
+      value: autoNext,
+      onChanged: (value) {
+        ref.read(puzzlePreferencesProvider.notifier).setAutoNext(value);
+      },
+    );
+
+    // Offline queue length is a logged-in-only feature: anonymous players face a much higher
+    // server rate limit for fetching puzzles, so the setting is hidden for them. It is also
+    // limited to the mix angle (see [isConfigurableOfflineQueueAngle]).
+    final offlinePuzzlesTile =
+        initialPuzzleContext.userId != null &&
+            isConfigurableOfflineQueueAngle(initialPuzzleContext.angle)
+        ? SettingsListTile(
+            icon: iconOf(Icons.download_for_offline_outlined),
+            trailing: isFillingQueue
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                  )
+                : null,
+            settingsLabel: Text(context.l10n.mobileNbOfflinePuzzles),
+            settingsValue: nbOfflinePuzzles.toString(),
+            enabled: !isFillingQueue,
+            onTap: isFillingQueue
+                ? null
+                : () {
+                    int selectedNb = nbOfflinePuzzles;
+                    showChoicePicker(
+                      context,
+                      choices: kOfflinePuzzlesChoices,
+                      selectedItem: nbOfflinePuzzles,
+                      labelBuilder: (t) => Text(t.toString()),
+                      onSelectedItemChanged: (int? nb) {
+                        if (nb != null) {
+                          selectedNb = nb;
+                        }
                       },
-              ),
-            ListTile(
-              title: Text(context.l10n.mobileBoardSettings),
-              trailing: const CupertinoListTileChevron(),
-              onTap: () {
-                Navigator.of(context).push(BoardSettingsScreen.buildRoute(fullscreenDialog: true));
-              },
-            ),
-          ],
+                    ).then((_) async {
+                      if (selectedNb == nbOfflinePuzzles) {
+                        return;
+                      }
+                      // Await the save: the fill reads the count from the preferences state, so
+                      // it must be up to date before the fill starts, or it would be a silent
+                      // no-op.
+                      await ref
+                          .read(puzzlePreferencesProvider.notifier)
+                          .setNbOfflinePuzzles(selectedNb);
+                      if (!context.mounted) return;
+                      unawaited(
+                        ref
+                            .read(puzzleQueueFillerProvider.notifier)
+                            .fill(
+                              userId: initialPuzzleContext.userId,
+                              angle: initialPuzzleContext.angle,
+                            ),
+                      );
+                    });
+                  },
+          )
+        : null;
+
+    final ratedTile = authUser != null && initialPuzzleContext.replayRemaining == null
+        ? SwitchSettingTile(
+            leading: iconOf(Icons.military_tech_outlined),
+            title: Text(context.l10n.rated),
+            // ignore: avoid_bool_literals_in_conditional_expressions
+            value: initialPuzzleContext.casual == true ? false : rated,
+            onChanged: initialPuzzleContext.casual == true
+                ? null
+                : (value) {
+                    ref.read(puzzlePreferencesProvider.notifier).setRated(value);
+                  },
+          )
+        : null;
+
+    final boardSettingsTile = ListTile(
+      leading: iconOf(Icons.grid_on_outlined),
+      title: Text(context.l10n.mobileBoardSettings),
+      trailing: isIOS ? const CupertinoListTileChevron() : const Icon(Icons.chevron_right),
+      onTap: () {
+        Navigator.of(context).push(BoardSettingsScreen.buildRoute(fullscreenDialog: true));
+      },
+    );
+
+    if (isIOS) {
+      return BottomSheetScrollableContainer(
+        // Room above the title, under the rounded top of the sheet.
+        padding: const EdgeInsets.only(top: 20, bottom: 16),
+        children: [
+          ListSection(
+            header: Text(context.l10n.settingsSettings),
+            materialFilledCard: true,
+            children: [
+              soundTile,
+              ?difficultyTile,
+              autoNextTile,
+              ?offlinePuzzlesTile,
+              ?ratedTile,
+              boardSettingsTile,
+            ],
+          ),
+        ],
+      );
+    }
+
+    return BottomSheetScrollableContainer(
+      // The drag handle already leaves room above the first section.
+      padding: const EdgeInsets.only(bottom: 16),
+      children: [
+        ListSection(
+          header: Text(context.l10n.puzzles),
+          materialFilledCard: true,
+          hasLeading: true,
+          children: [?difficultyTile, ?ratedTile, autoNextTile, ?offlinePuzzlesTile],
+        ),
+        ListSection(
+          header: const Text('Sound & board'),
+          materialFilledCard: true,
+          hasLeading: true,
+          children: [soundTile, boardSettingsTile],
         ),
       ],
     );
