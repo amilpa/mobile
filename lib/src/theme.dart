@@ -198,7 +198,9 @@ ThemeData _makeDefaultTheme(
       shape: isIOS
           ? null
           : const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(Styles.materialPopupRadius),
+              ),
             ),
       scrolledUnderElevation: 0,
       titleTextStyle: isIOS
@@ -225,10 +227,8 @@ ThemeData _makeDefaultTheme(
             elevation: 0,
             color: theme.colorScheme.surfaceContainer,
             shape: RoundedRectangleBorder(
-              borderRadius: Styles.cardBorderRadius,
-              side: isDark
-                  ? BorderSide(color: theme.colorScheme.outlineVariant)
-                  : BorderSide.none,
+              borderRadius: Styles.materialCardBorderRadius,
+              side: isDark ? BorderSide(color: theme.colorScheme.outlineVariant) : BorderSide.none,
             ),
           ),
     inputDecorationTheme: isIOS ? _makeCupertinoInputDecorationTheme(theme.colorScheme) : null,
@@ -237,24 +237,20 @@ ThemeData _makeDefaultTheme(
             backgroundColor: theme.colorScheme.secondaryFixedDim,
             foregroundColor: theme.colorScheme.onSecondaryFixedVariant,
           )
-        : null,
+        : const FloatingActionButtonThemeData(shape: StadiumBorder()),
+    // Popups float over the page, so they are rounder than the cards in it.
     dialogTheme: isIOS
         ? _kCupertinoDialogTheme
-        // Popups float over the page, so they are rounder than the cards in it.
-        : const DialogThemeData(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(28))),
-          ),
+        : const DialogThemeData(shape: _kMaterialPopupShape),
     filledButtonTheme: isIOS ? _kCupertinoFilledButtonTheme : _kNeoFilledButtonTheme,
     outlinedButtonTheme: isIOS ? _kCupertinoOutlinedButtonTheme : _kNeoOutlinedButtonTheme,
     textButtonTheme: isIOS ? null : _kNeoTextButtonTheme,
-    menuTheme: isIOS ? _kCupertinoMenuThemeData : null,
+    menuTheme: isIOS ? _kCupertinoMenuThemeData : const MenuThemeData(style: _kMaterialMenuStyle),
+    popupMenuTheme: isIOS ? null : const PopupMenuThemeData(shape: _kMaterialCardShape),
+    chipTheme: isIOS ? null : const ChipThemeData(shape: StadiumBorder()),
     bottomSheetTheme: isIOS
         ? _kCupertinoBottomSheetTheme
-        : const BottomSheetThemeData(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            ),
-          ),
+        : const BottomSheetThemeData(shape: _kMaterialSheetShape),
     sliderTheme: kSliderTheme,
     extensions: [lichessCustomColors.harmonized(theme.colorScheme)],
   );
@@ -299,23 +295,30 @@ ThemeData _makeBackgroundImageTheme({
     ),
     cupertinoOverrideTheme: _makeCupertinoThemeData(baseTheme.colorScheme, baseTheme.brightness),
     listTileTheme: _makeListTileTheme(baseTheme.colorScheme, isIOS),
-    cardTheme: isIOS ? _kCupertinoCardTheme : null,
+    cardTheme: isIOS ? _kCupertinoCardTheme : const CardThemeData(shape: _kMaterialCardShape),
     inputDecorationTheme: isIOS ? _makeCupertinoInputDecorationTheme(baseTheme.colorScheme) : null,
-    bottomSheetTheme: (isIOS ? _kCupertinoBottomSheetTheme : const BottomSheetThemeData()).copyWith(
-      backgroundColor: isIOS
-          ? lighten(baseTheme.colorScheme.surface, 0.1).withValues(alpha: 0.9)
-          : baseTheme.colorScheme.surface.withValues(alpha: 0.9),
-    ),
+    bottomSheetTheme:
+        (isIOS
+                ? _kCupertinoBottomSheetTheme
+                : const BottomSheetThemeData(shape: _kMaterialSheetShape))
+            .copyWith(
+              backgroundColor: isIOS
+                  ? lighten(baseTheme.colorScheme.surface, 0.1).withValues(alpha: 0.9)
+                  : baseTheme.colorScheme.surface.withValues(alpha: 0.9),
+            ),
     drawerTheme: DrawerThemeData(
       backgroundColor: baseTheme.colorScheme.surfaceContainerLow.withValues(alpha: 0.9),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: baseTheme.colorScheme.secondaryFixedDim,
       foregroundColor: baseTheme.colorScheme.onSecondaryFixedVariant,
+      shape: isIOS ? null : const StadiumBorder(),
     ),
-    dialogTheme: (isIOS ? _kCupertinoDialogTheme : const DialogThemeData()).copyWith(
-      backgroundColor: baseTheme.colorScheme.surface.withValues(alpha: 0.9),
-    ),
+    popupMenuTheme: isIOS ? null : const PopupMenuThemeData(shape: _kMaterialCardShape),
+    chipTheme: isIOS ? null : const ChipThemeData(shape: StadiumBorder()),
+    dialogTheme:
+        (isIOS ? _kCupertinoDialogTheme : const DialogThemeData(shape: _kMaterialPopupShape))
+            .copyWith(backgroundColor: baseTheme.colorScheme.surface.withValues(alpha: 0.9)),
     filledButtonTheme: isIOS ? _kCupertinoFilledButtonTheme : null,
     outlinedButtonTheme: isIOS ? _kCupertinoOutlinedButtonTheme : null,
     menuTheme: isIOS
@@ -328,7 +331,7 @@ ThemeData _makeBackgroundImageTheme({
             ),
           )
         : MenuThemeData(
-            style: MenuStyle(
+            style: _kMaterialMenuStyle.copyWith(
               backgroundColor: WidgetStatePropertyAll(
                 baseTheme.colorScheme.surfaceContainerLow.withValues(alpha: 0.8),
               ),
@@ -364,10 +367,25 @@ ThemeData _makeBackgroundImageTheme({
   );
 }
 
-/// Corners of the buttons, as LichessNeo's.
+/// The buttons are pills, as the bottom navigation bar (see the corner scale in [Styles]).
 const WidgetStatePropertyAll<OutlinedBorder> _kNeoButtonShape = WidgetStatePropertyAll(
-  RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(7))),
+  StadiumBorder(),
 );
+
+// The shapes of the Android components, after the corner scale in [Styles].
+
+const _kMaterialCardShape = RoundedRectangleBorder(borderRadius: Styles.materialCardBorderRadius);
+
+const _kMaterialPopupShape = RoundedRectangleBorder(
+  borderRadius: BorderRadius.all(Radius.circular(Styles.materialPopupRadius)),
+);
+
+const _kMaterialSheetShape = RoundedRectangleBorder(
+  borderRadius: BorderRadius.vertical(top: Radius.circular(Styles.materialPopupRadius)),
+);
+
+/// Menus are small popups attached to their button: they take the corners of the cards.
+const _kMaterialMenuStyle = MenuStyle(shape: WidgetStatePropertyAll(_kMaterialCardShape));
 
 const _kNeoFilledButtonTheme = FilledButtonThemeData(
   style: ButtonStyle(

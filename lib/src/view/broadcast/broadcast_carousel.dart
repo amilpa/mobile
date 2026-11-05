@@ -108,7 +108,7 @@ class _BroadcastCarouselState() extends State<BroadcastCarousel> {
             ),
             child: CarouselView.weighted(
               controller: _controller,
-              shape: const RoundedRectangleBorder(borderRadius: Styles.cardBorderRadius),
+              shape: RoundedRectangleBorder(borderRadius: Styles.cardBorderRadiusOf(context)),
               elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0 : 1,
               flexWeights: flexWeights,
               itemSnapping: true,

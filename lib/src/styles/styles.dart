@@ -31,8 +31,30 @@ abstract class Styles() {
   /// Horizontal and bottom padding for the body section.
   static const bodySectionBottomPadding = EdgeInsets.only(bottom: 16.0, left: 16.0, right: 16.0);
 
-  // cards
+  // corners
+  //
+  // On Android everything is rounded after the pill-shaped bottom navigation bar: the controls one
+  // line high (buttons, chips) are pills, and the surfaces get a radius from this scale, larger
+  // the higher they float, so that the tall ones don't turn into ovals. iOS keeps its own radii.
+
+  /// Corners of the cards on iOS.
   static const cardBorderRadius = BorderRadius.all(Radius.circular(8.0));
+
+  /// Corners of the cards and menus on Android, and of the elements laid on a popup, like its
+  /// buttons.
+  static const materialCardRadius = 20.0;
+
+  static const materialCardBorderRadius = BorderRadius.all(Radius.circular(materialCardRadius));
+
+  /// Corners of the surfaces floating over the page on Android: dialogs, bottom sheets and the
+  /// bottom of the app bar.
+  static const materialPopupRadius = 32.0;
+
+  /// Corners of the cards on the current platform.
+  static BorderRadius cardBorderRadiusOf(BuildContext context) =>
+      Theme.of(context).platform == TargetPlatform.iOS
+      ? cardBorderRadius
+      : materialCardBorderRadius;
 
   // boards
   static const boardBorderRadius = BorderRadius.all(Radius.circular(5.0));

@@ -78,7 +78,7 @@ class _GamesCarouselState<T>() extends State<GamesCarousel<T>> {
               child: CarouselView.weighted(
                 controller: _controller,
                 padding: kGameCarouselPadding,
-                shape: const RoundedRectangleBorder(borderRadius: Styles.cardBorderRadius),
+                shape: RoundedRectangleBorder(borderRadius: Styles.cardBorderRadiusOf(context)),
                 elevation: Theme.of(context).platform == TargetPlatform.iOS ? 0 : 1,
                 flexWeights: kGameCarouselFlexWeights,
                 itemSnapping: true,

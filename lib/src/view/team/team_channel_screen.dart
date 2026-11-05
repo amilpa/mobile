@@ -189,7 +189,7 @@ class const _TeamUpdateCard({required final TeamUpdateItem item}) extends Consum
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shape: const RoundedRectangleBorder(borderRadius: Styles.cardBorderRadius),
+      shape: RoundedRectangleBorder(borderRadius: Styles.cardBorderRadiusOf(context)),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

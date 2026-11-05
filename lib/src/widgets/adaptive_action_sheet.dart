@@ -3,15 +3,18 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:lichess_mobile/src/constants.dart';
+import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Space between the edge of the Material action sheet and its buttons.
 const _kActionSheetPadding = 12.0;
 
-/// Corners of the buttons of the Material action sheet: the 28 of the dialog corners less the
+/// Corners of the buttons of the Material action sheet: the corners of the dialog less the
 /// [_kActionSheetPadding], so that the corners of the buttons follow those of the dialog.
-const _kActionButtonBorderRadius = BorderRadius.all(Radius.circular(16));
+const _kActionButtonBorderRadius = BorderRadius.all(
+  Radius.circular(Styles.materialPopupRadius - _kActionSheetPadding),
+);
 
 /// A action bottom sheet that adapts to the platform (Android/iOS).
 ///
