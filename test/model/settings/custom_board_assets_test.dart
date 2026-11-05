@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:chessground/chessground.dart';
+import 'package:dartchess/dartchess.dart' show PieceKind;
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lichess_mobile/src/model/settings/custom_board_assets.dart';

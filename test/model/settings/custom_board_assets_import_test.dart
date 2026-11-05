@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:chessground/chessground.dart';
+import 'package:dartchess/dartchess.dart' show PieceKind;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/settings/custom_board_assets.dart';

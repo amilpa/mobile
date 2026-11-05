@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:chessground/chessground.dart';
-import 'package:dartchess/dartchess.dart';
+import 'package:dartchess/dartchess.dart' show PieceKind, Side;
 import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';

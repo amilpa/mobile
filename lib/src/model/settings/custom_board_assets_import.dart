@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:archive/archive.dart';
-import 'package:chessground/chessground.dart';
+import 'package:dartchess/dartchess.dart' show PieceKind;
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
