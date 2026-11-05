@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/l10n/l10n.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
+import 'package:lichess_mobile/src/model/settings/custom_board_assets.dart';
 import 'package:lichess_mobile/src/model/settings/neo_board.dart';
 import 'package:lichess_mobile/src/model/settings/preferences_storage.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
@@ -38,19 +39,43 @@ class BoardPreferences() extends Notifier<BoardPrefs> with PreferencesStorage<Bo
   }
 
   Future<void> setPieceSet(PieceSet pieceSet) {
-    return save(state.copyWith(pieceSet: pieceSet, neoPieceSet: null));
+    return save(state.copyWith(pieceSet: pieceSet, neoPieceSet: null, useCustomPieceSet: false));
   }
 
   Future<void> setNeoPieceSet(NeoPieceSet pieceSet) {
-    return save(state.copyWith(neoPieceSet: pieceSet));
+    return save(state.copyWith(neoPieceSet: pieceSet, useCustomPieceSet: false));
+  }
+
+  /// Stores the imported [pieceSet] and uses it, or removes the custom piece set if `null`.
+  ///
+  /// See `CustomBoardAssetsImporter`, which also writes and deletes its files.
+  Future<void> setCustomPieceSet(CustomPieceSet? pieceSet) {
+    return save(state.copyWith(customPieceSet: pieceSet, useCustomPieceSet: pieceSet != null));
+  }
+
+  /// Uses the imported custom piece set again, if there is one.
+  Future<void> useCustomPieceSet() {
+    return save(state.copyWith(useCustomPieceSet: state.customPieceSet != null));
   }
 
   Future<void> setBoardTheme(BoardTheme boardTheme) async {
-    await save(state.copyWith(boardTheme: boardTheme, neoBoard: null));
+    await save(state.copyWith(boardTheme: boardTheme, neoBoard: null, useCustomBoard: false));
   }
 
   Future<void> setNeoBoard(NeoBoard board) {
-    return save(state.copyWith(neoBoard: board));
+    return save(state.copyWith(neoBoard: board, useCustomBoard: false));
+  }
+
+  /// Stores the imported [board] and uses it, or removes the custom board if `null`.
+  ///
+  /// See `CustomBoardAssetsImporter`, which also writes and deletes its image.
+  Future<void> setCustomBoard(CustomBoard? board) {
+    return save(state.copyWith(customBoard: board, useCustomBoard: board != null));
+  }
+
+  /// Uses the imported custom board again, if there is one.
+  Future<void> useCustomBoard() {
+    return save(state.copyWith(useCustomBoard: state.customBoard != null));
   }
 
   Future<void> togglePremoves() async {
@@ -154,6 +179,18 @@ sealed class const BoardPrefs._() with _$BoardPrefs implements Serializable {
 
     /// LichessNeo board, used instead of [boardTheme] when set.
     @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) NeoBoard? neoBoard,
+
+    /// Piece set imported by the user, if any.
+    CustomPieceSet? customPieceSet,
+
+    /// Whether [customPieceSet] is used instead of [neoPieceSet] and [pieceSet].
+    @JsonKey(defaultValue: false) required bool useCustomPieceSet,
+
+    /// Board imported by the user, if any.
+    CustomBoard? customBoard,
+
+    /// Whether [customBoard] is used instead of [neoBoard] and [boardTheme].
+    @JsonKey(defaultValue: false) required bool useCustomBoard,
     bool? immersiveModeWhilePlaying,
     required bool hapticFeedback,
     required bool showLegalMoves,
@@ -199,6 +236,8 @@ sealed class const BoardPrefs._() with _$BoardPrefs implements Serializable {
   static const defaults = BoardPrefs(
     pieceSet: PieceSet.cburnett,
     boardTheme: BoardTheme.brown,
+    useCustomPieceSet: false,
+    useCustomBoard: false,
     immersiveModeWhilePlaying: false,
     hapticFeedback: true,
     showLegalMoves: true,
@@ -226,17 +265,29 @@ sealed class const BoardPrefs._() with _$BoardPrefs implements Serializable {
   bool get hasColorAdjustments =>
       brightness != kBoardDefaultBrightnessFilter || hue != kBoardDefaultHueFilter;
 
+  /// The custom piece set, if it is the selected one.
+  CustomPieceSet? get selectedCustomPieceSet => useCustomPieceSet ? customPieceSet : null;
+
+  /// The custom board, if it is the selected one.
+  CustomBoard? get selectedCustomBoard => useCustomBoard ? customBoard : null;
+
   /// The images of the selected piece set.
-  PieceAssets get pieceAssets => neoPieceSet?.assets ?? pieceSet.assets;
+  PieceAssets get pieceAssets =>
+      selectedCustomPieceSet?.assets ?? neoPieceSet?.assets ?? pieceSet.assets;
 
   /// The name of the selected piece set.
-  String get pieceSetLabel => neoPieceSet?.label ?? pieceSet.label;
+  String get pieceSetLabel => selectedCustomPieceSet?.name ?? neoPieceSet?.label ?? pieceSet.label;
 
   /// The colors of the selected board.
-  ChessboardColorScheme get boardColors => neoBoard?.colors ?? boardTheme.colors;
+  ChessboardColorScheme get boardColors =>
+      selectedCustomBoard?.colors ?? neoBoard?.colors ?? boardTheme.colors;
 
   /// The name of the selected board.
-  String get boardLabel => neoBoard?.label ?? boardTheme.label;
+  String get boardLabel => selectedCustomBoard?.name ?? neoBoard?.label ?? boardTheme.label;
+
+  /// A strip of squares of the selected board, for pickers.
+  Widget get boardThumbnail =>
+      selectedCustomBoard?.thumbnail ?? neoBoard?.thumbnail ?? boardTheme.thumbnail;
 
   ChessboardSettings toBoardSettings(Variant variant) {
     return ChessboardSettings(

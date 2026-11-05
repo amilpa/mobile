@@ -7,6 +7,7 @@ import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/chessboard.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/view/settings/custom_board_assets_screen.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -43,6 +44,7 @@ class _PieceSetScreenState() extends ConsumerState<PieceSetScreen> {
   Widget build(BuildContext context) {
     final boardPrefs = ref.watch(boardPreferencesProvider);
     final notifier = ref.read(boardPreferencesProvider.notifier);
+    final customPieceSet = boardPrefs.customPieceSet;
 
     Widget tile({
       required String label,
@@ -53,7 +55,7 @@ class _PieceSetScreenState() extends ConsumerState<PieceSetScreen> {
       return ListTile(
         trailing: selected ? const Icon(Icons.check) : null,
         title: Text(label),
-        subtitle: _PieceSetPreview(assets: assets, boardPrefs: boardPrefs),
+        subtitle: PieceSetPreview(assets: assets, boardPrefs: boardPrefs),
         onTap: isLoading ? null : () => onChanged(save, assets),
         selected: selected,
       );
@@ -67,12 +69,27 @@ class _PieceSetScreenState() extends ConsumerState<PieceSetScreen> {
       body: SafeArea(
         child: ListView(
           children: [
+            const _SectionHeader('Custom'),
+            if (customPieceSet != null)
+              tile(
+                label: customPieceSet.name,
+                assets: customPieceSet.assets,
+                selected: boardPrefs.useCustomPieceSet,
+                save: notifier.useCustomPieceSet,
+              ),
+            ListTile(
+              leading: const Icon(Icons.upload_file),
+              title: Text(
+                customPieceSet == null ? 'Import your own pieces' : 'Manage custom pieces',
+              ),
+              onTap: () => Navigator.of(context).push(CustomBoardAssetsScreen.buildRoute()),
+            ),
             const _SectionHeader('LichessNeo'),
             for (final pieceSet in NeoPieceSet.values)
               tile(
                 label: pieceSet.label,
                 assets: pieceSet.assets,
-                selected: boardPrefs.neoPieceSet == pieceSet,
+                selected: !boardPrefs.useCustomPieceSet && boardPrefs.neoPieceSet == pieceSet,
                 save: () => notifier.setNeoPieceSet(pieceSet),
               ),
             const _SectionHeader('Lichess'),
@@ -80,7 +97,10 @@ class _PieceSetScreenState() extends ConsumerState<PieceSetScreen> {
               tile(
                 label: pieceSet.label,
                 assets: pieceSet.assets,
-                selected: boardPrefs.neoPieceSet == null && boardPrefs.pieceSet == pieceSet,
+                selected:
+                    !boardPrefs.useCustomPieceSet &&
+                    boardPrefs.neoPieceSet == null &&
+                    boardPrefs.pieceSet == pieceSet,
                 save: () => notifier.setPieceSet(pieceSet),
               ),
           ],
@@ -90,7 +110,9 @@ class _PieceSetScreenState() extends ConsumerState<PieceSetScreen> {
   }
 }
 
-class const _PieceSetPreview({
+/// A few pieces of the piece set [assets], over the selected board.
+class const PieceSetPreview({
+  super.key,
   required final PieceAssets assets,
   required final BoardPrefs boardPrefs,
 }) extends StatelessWidget {
@@ -112,11 +134,19 @@ class const _PieceSetPreview({
           BrightnessHueFilter(
             brightness: boardPrefs.brightness,
             hue: boardPrefs.hue,
-            child: boardPrefs.neoBoard?.thumbnail ?? boardPrefs.boardTheme.thumbnail,
+            child: boardPrefs.boardThumbnail,
           ),
           Row(
             children: [
-              for (final kind in _previewPieces) Image(image: assets[kind]!, height: 44),
+              for (final kind in _previewPieces)
+                Image(
+                  image: assets[kind]!,
+                  height: 44,
+                  width: 44,
+                  // A custom piece set can lose its files, e.g. if the app data is partly
+                  // cleared: keep the preview's layout.
+                  errorBuilder: (_, _, _) => const SizedBox.square(dimension: 44),
+                ),
             ],
           ),
         ],

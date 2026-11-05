@@ -10,6 +10,7 @@ import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/utils/system.dart';
 import 'package:lichess_mobile/src/view/settings/board_choice_screen.dart';
+import 'package:lichess_mobile/src/view/settings/custom_board_assets_screen.dart';
 import 'package:lichess_mobile/src/view/settings/piece_set_screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_choice_picker.dart';
 import 'package:lichess_mobile/src/widgets/feedback.dart';
@@ -103,6 +104,13 @@ class _BoardSettingsScreenState() extends ConsumerState<BoardSettingsScreen> {
                 settingsValue: boardPrefs.pieceSetLabel,
                 onTap: () {
                   Navigator.of(context).push(PieceSetScreen.buildRoute());
+                },
+              ),
+              SettingsListTile(
+                settingsLabel: const Text('Custom board & pieces'),
+                settingsValue: customBoardAssetsInUse(boardPrefs),
+                onTap: () {
+                  Navigator.of(context).push(CustomBoardAssetsScreen.buildRoute());
                 },
               ),
               SettingsListTile(

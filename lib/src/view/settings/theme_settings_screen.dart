@@ -15,6 +15,7 @@ import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/view/settings/accent_color_picker.dart';
 import 'package:lichess_mobile/src/view/settings/background_theme_choice_screen.dart';
 import 'package:lichess_mobile/src/view/settings/board_choice_screen.dart';
+import 'package:lichess_mobile/src/view/settings/custom_board_assets_screen.dart';
 import 'package:lichess_mobile/src/view/settings/piece_set_screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_choice_picker.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
@@ -190,6 +191,14 @@ class _BodyState() extends ConsumerState<_Body> {
                       settingsValue: boardPrefs.pieceSetLabel,
                       onTap: () {
                         Navigator.of(context).push(PieceSetScreen.buildRoute());
+                      },
+                    ),
+                    SettingsListTile(
+                      icon: const Icon(Icons.upload_file),
+                      settingsLabel: const Text('Custom board & pieces'),
+                      settingsValue: customBoardAssetsInUse(boardPrefs),
+                      onTap: () {
+                        Navigator.of(context).push(CustomBoardAssetsScreen.buildRoute());
                       },
                     ),
                     SettingsListTile(
