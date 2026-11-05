@@ -28,6 +28,7 @@ import 'package:lichess_mobile/src/view/puzzle/storm_screen.dart';
 import 'package:lichess_mobile/src/view/puzzle/streak_screen.dart';
 import 'package:lichess_mobile/src/widgets/board_preview.dart';
 import 'package:lichess_mobile/src/widgets/feedback.dart';
+import 'package:lichess_mobile/src/widgets/haptic_refresh_indicator.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
 import 'package:lichess_mobile/src/widgets/misc.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
@@ -141,28 +142,46 @@ class _MaterialTabBodyState() extends ConsumerState<_MaterialTabBody> {
         _buildMainListItem(context, index, animation, (index) => _angles[index]);
 
     return _PuzzleTabScaffold(
-      body: isTablet
-          ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: AnimatedList(
-                    key: _listKey,
-                    initialItemCount: _angles.length,
-                    controller: puzzlesScrollController,
-                    itemBuilder: buildItem,
+      body: HapticRefreshIndicator(
+        edgeOffset: Theme.of(context).platform == TargetPlatform.iOS
+            ? MediaQuery.paddingOf(context).top + kToolbarHeight
+            : 0.0,
+        onRefresh: _refreshData,
+        child: isTablet
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: AnimatedList(
+                      key: _listKey,
+                      initialItemCount: _angles.length,
+                      controller: puzzlesScrollController,
+                      itemBuilder: buildItem,
+                    ),
                   ),
-                ),
-                Expanded(child: ListView(children: const [PuzzleHistoryWidget()])),
-              ],
-            )
-          : AnimatedList(
-              key: _listKey,
-              controller: puzzlesScrollController,
-              initialItemCount: _angles.length,
-              itemBuilder: buildItem,
-            ),
+                  Expanded(child: ListView(children: const [PuzzleHistoryWidget()])),
+                ],
+              )
+            : AnimatedList(
+                key: _listKey,
+                controller: puzzlesScrollController,
+                initialItemCount: _angles.length,
+                itemBuilder: buildItem,
+              ),
+      ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    try {
+      await Future.wait([
+        ref.refresh(dailyPuzzleProvider.future),
+        ref.refresh(puzzleRecentActivityProvider.future),
+      ]);
+    } catch (_) {
+      // The tab's sections show their own error when they can't be loaded, there is nothing more
+      // to do here.
+    }
   }
 }
 

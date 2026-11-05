@@ -1,4 +1,5 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
@@ -109,8 +110,25 @@ final puzzleProvider = FutureProvider.autoDispose.family<Puzzle, PuzzleId>((
   return await ref.read(puzzleRepositoryProvider).fetch(id);
 }, name: 'PuzzleProvider');
 
+/// How old the daily puzzle must be to be fetched again when the app is resumed.
+const _kDailyPuzzleMaxAgeOnResume = Duration(hours: 1);
+
 /// Fetches the daily puzzle.
+///
+/// The puzzle tab watches this provider for as long as the app runs, so the puzzle would never be
+/// fetched again and would stay on a past day: it is fetched again when the app is resumed, if it
+/// was fetched long enough ago.
 final dailyPuzzleProvider = FutureProvider.autoDispose<Puzzle>((Ref ref) {
+  final fetchedAt = DateTime.now();
+  final lifecycleListener = AppLifecycleListener(
+    onResume: () {
+      if (DateTime.now().difference(fetchedAt) > _kDailyPuzzleMaxAgeOnResume) {
+        ref.invalidateSelf();
+      }
+    },
+  );
+  ref.onDispose(lifecycleListener.dispose);
+
   return ref.withClientCacheFor(
     (client) => PuzzleRepository(client).daily(),
     const Duration(hours: 6),
