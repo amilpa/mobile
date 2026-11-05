@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:deep_pick/deep_pick.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:http/http.dart' show Request;
+import 'package:lichess_mobile/src/model/chat/chat_message.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/socket.dart';
@@ -24,7 +26,8 @@ const _kReconnectDelay = Duration(seconds: 2);
 ///
 /// Board API events are translated into the events the `/play` socket used to emit (`full`,
 /// `move`, `endData`, `drawOffer`, ...), so that the game controller can handle them unchanged.
-/// What the Board API does not provide (more time, rematch, chat, spectators) is unavailable.
+/// The players' chat is relayed as `message` events, as on the socket. What the Board API does not
+/// provide (more time, rematch, spectators and their chat) is unavailable.
 class BoardApiGameConnection {
   BoardApiGameConnection({
     required LichessClient Function() client,
@@ -181,6 +184,11 @@ class BoardApiGameConnection {
           _onGameState(_BoardState.fromJson(json));
         case 'opponentGone':
           _onOpponentGone(json);
+        case 'chatLine':
+          // Only the players' room: the spectators' one is not shown to the players.
+          if (json['room'] == 'player') {
+            _emit('message', {'u': json['username'], 't': json['text']});
+          }
       }
     } catch (e, st) {
       _logger.severe('Could not handle game stream event: $line', e, st);
@@ -389,10 +397,31 @@ class BoardApiGameConnection {
     _post(action);
   }
 
-  Future<bool> _post(String action) async {
+  /// The messages of the players' chat so far, oldest first.
+  Future<IList<ChatMessage>> fetchChat() {
+    return _client().readJsonList(
+      Uri(path: '/api/board/game/${_gameId.value}/chat'),
+      mapper: (json) => ChatMessage(
+        message: json['text'] as String,
+        username: json['user'] as String?,
+        troll: false,
+        deleted: false,
+      ),
+    );
+  }
+
+  /// Posts [text] to the players' chat.
+  ///
+  /// The message is not added locally: the game stream sends it back as a `message` event, like
+  /// the opponent's ones.
+  Future<bool> sendChat(String text) {
+    return _post('chat', body: {'room': 'player', 'text': text});
+  }
+
+  Future<bool> _post(String action, {Map<String, String>? body}) async {
     final uri = Uri(path: '/api/board/game/${_gameId.value}/$action');
     try {
-      final response = await _client().post(uri);
+      final response = await _client().post(uri, body: body);
       if (response.statusCode >= 400) {
         _logger.warning('$uri failed with ${response.statusCode}: ${response.body}');
         return false;

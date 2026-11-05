@@ -24,6 +24,7 @@ import 'package:lichess_mobile/src/model/common/speed.dart';
 import 'package:lichess_mobile/src/model/game/board_api_game_connection.dart';
 import 'package:lichess_mobile/src/model/game/exported_game.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
+import 'package:lichess_mobile/src/model/game/game_preferences.dart';
 import 'package:lichess_mobile/src/model/game/game_repository.dart';
 import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
 import 'package:lichess_mobile/src/model/game/game_status.dart';
@@ -31,6 +32,7 @@ import 'package:lichess_mobile/src/model/game/game_storage.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/ui_events.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/service/account_service.dart';
 import 'package:lichess_mobile/src/service/correspondence_service.dart';
@@ -169,6 +171,8 @@ class GameController(final GameFullId gameFullId)
         }
       },
     );
+    // The chat history is not part of the game stream: it is loaded alongside it.
+    final chatHistory = _fetchChatHistory();
     _connection.connect();
 
     final rawFullEvent = await fullEventCompleter.future;
@@ -215,10 +219,40 @@ class GameController(final GameFullId gameFullId)
       game: game,
       stepCursor: game.steps.length - 1,
       liveClock: _clock != null ? (white: _clock!.whiteTime, black: _clock!.blackTime) : null,
-      chatState: await initChat(game.chat),
-      // The Board API has no game chat.
-      chatDisabledViaPrefs: true,
+      chatState: await initChat(game.chat ?? (lines: await chatHistory, writeable: true)),
+      chatDisabledViaPrefs: ref.read(gamePreferencesProvider).enableChat == false,
     );
+  }
+
+  /// The players' chat of the game so far, empty when it could not be loaded.
+  Future<IList<ChatMessage>> _fetchChatHistory() async {
+    try {
+      return await _connection.fetchChat();
+    } catch (e, st) {
+      _logger.warning('Could not load the chat', e, st);
+      return IList<ChatMessage>();
+    }
+  }
+
+  /// Reloads the chat history, to catch up on the messages missed while the stream was closed.
+  Future<void> _refreshChat() async {
+    final lines = await _fetchChatHistory();
+    if (!ref.mounted || !state.hasValue) return;
+    final chatState = await initChat((lines: lines, writeable: true));
+    if (!ref.mounted || !state.hasValue || chatState == null) return;
+    // Keep the current messages if the history could not be loaded.
+    if (lines.isEmpty && (state.requireValue.chatState?.messages.isNotEmpty ?? false)) return;
+    updateChatState(chatState);
+  }
+
+  /// Sends [message] to the players' chat through the Board API, instead of the socket.
+  @override
+  void postMessage(String message) {
+    _connection.sendChat(message).then((ok) {
+      if (!ok && ref.mounted) {
+        ref.read(uiEventBusProvider).emit(const ShowErrorEvent('Could not send the message'));
+      }
+    });
   }
 
   @override
@@ -436,8 +470,8 @@ class GameController(final GameFullId gameFullId)
   void onToggleChat(bool isChatEnabled) {
     state = AsyncValue.data(state.requireValue.copyWith(chatDisabledViaPrefs: !isChatEnabled));
     if (isChatEnabled) {
-      // if chat is enabled, we need to resync the game data to get the chat messages
-      _reloadGame();
+      // Messages are dropped while the chat is disabled: catch up on them.
+      _refreshChat();
     }
   }
 
@@ -674,6 +708,9 @@ class GameController(final GameFullId gameFullId)
             activeSide: state.requireValue.activeClockSide,
           );
         }
+
+        // The stream may have been closed for a while, so catch up on the chat as well.
+        if (state.requireValue.chatEnabled) _refreshChat();
 
       // Server asking for a resync
       case 'resync':
