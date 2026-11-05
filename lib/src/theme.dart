@@ -29,22 +29,43 @@ ThemeData makeAppTheme(
         };
 
   if (backgroundColor == null && backgroundImage == null) {
-    return _makeDefaultTheme(
-      brightness,
-      themeMode: themeMode,
-      accentColor: accentColor,
-      isIOS: isIOS,
+    return _withAppFont(
+      _makeDefaultTheme(brightness, themeMode: themeMode, accentColor: accentColor, isIOS: isIOS),
     );
   } else {
-    return _makeBackgroundImageTheme(
-      baseTheme: backgroundImage?.baseTheme ?? backgroundColor!.$1.baseTheme,
-      seedColor:
-          backgroundImage?.seedColor ??
-          (backgroundColor!.$2 ? backgroundColor.$1.darker : backgroundColor.$1.color),
-      isIOS: isIOS,
-      isBackgroundImage: backgroundImage != null,
+    return _withAppFont(
+      _makeBackgroundImageTheme(
+        baseTheme: backgroundImage?.baseTheme ?? backgroundColor!.$1.baseTheme,
+        seedColor:
+            backgroundImage?.seedColor ??
+            (backgroundColor!.$2 ? backgroundColor.$1.darker : backgroundColor.$1.color),
+        isIOS: isIOS,
+        isBackgroundImage: backgroundImage != null,
+      ),
     );
   }
+}
+
+/// The text font of the app, bundled in `assets/fonts/PlusJakartaSans/`.
+///
+/// Scripts it does not cover (Cyrillic, Greek, CJK, ...) fall back to the system font.
+const kAppFontFamily = 'PlusJakartaSans';
+
+/// Sets [kAppFontFamily] on every text style of [theme], and gives the app bar titles a heavier
+/// weight that suits the font.
+ThemeData _withAppFont(ThemeData theme) {
+  final appBarTitleStyle = theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge;
+  return theme.copyWith(
+    textTheme: theme.textTheme.apply(fontFamily: kAppFontFamily),
+    primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: kAppFontFamily),
+    appBarTheme: theme.appBarTheme.copyWith(
+      titleTextStyle: appBarTitleStyle?.copyWith(
+        fontFamily: kAppFontFamily,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+    ),
+  );
 }
 
 /// A custom theme extension that adds lichess custom properties to the theme.
@@ -501,12 +522,23 @@ CupertinoThemeData _makeCupertinoThemeData(ColorScheme colorScheme, Brightness b
       primaryColor: colorScheme.primary,
       textStyle: const CupertinoThemeData().textTheme.textStyle.copyWith(
         color: colorScheme.onSurface,
+        fontFamily: kAppFontFamily,
+      ),
+      actionTextStyle: const CupertinoThemeData().textTheme.actionTextStyle.copyWith(
+        fontFamily: kAppFontFamily,
+      ),
+      tabLabelTextStyle: const CupertinoThemeData().textTheme.tabLabelTextStyle.copyWith(
+        fontFamily: kAppFontFamily,
       ),
       navTitleTextStyle: const CupertinoThemeData().textTheme.navTitleTextStyle.copyWith(
         color: colorScheme.onSurface,
+        fontFamily: kAppFontFamily,
+        fontWeight: FontWeight.w700,
       ),
       navLargeTitleTextStyle: const CupertinoThemeData().textTheme.navLargeTitleTextStyle.copyWith(
         color: colorScheme.onSurface,
+        fontFamily: kAppFontFamily,
+        fontWeight: FontWeight.w800,
       ),
     ),
     brightness: brightness,

@@ -27,6 +27,7 @@ import 'package:lichess_mobile/src/view/user/pick_player_screen.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/feedback.dart';
 import 'package:lichess_mobile/src/widgets/game_layout.dart';
+import 'package:lichess_mobile/src/widgets/matchmaking_animation.dart';
 import 'package:lichess_mobile/src/widgets/shimmer.dart';
 import 'package:lichess_mobile/src/widgets/user.dart';
 import 'package:material_ui/material_ui.dart';
@@ -57,8 +58,14 @@ class _LobbyScreenLoadingContentState() extends State<LobbyScreenLoadingContent>
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(context.l10n.mobileWaitingForOpponentToJoin),
-              const SizedBox(height: 26.0),
+              const MatchmakingAnimation(),
+              const SizedBox(height: 18.0),
+              Text(
+                context.l10n.mobileWaitingForOpponentToJoin,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 14.0),
               _GameParamsDisplay.seek(widget.seek),
               //Do not show rating range if the default values (-500, +500) are used
               if (widget.seek.ratingRange != null &&
@@ -135,14 +142,19 @@ class _UserChallengeLoadingContentState() extends State<UserChallengeLoadingCont
         boardParams: GameBoardParams.emptyBoard,
         moves: const [],
         boardOverlay: _BoardOverlayCard(
-          padding: const EdgeInsets.all(40.0),
+          padding: const EdgeInsets.all(30.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(context.l10n.waitingForOpponent),
-              const SizedBox(height: 16.0),
+              MatchmakingAnimation(opponentName: widget.challenge.destUser?.name),
+              const SizedBox(height: 18.0),
+              Text(
+                context.l10n.waitingForOpponent,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 12.0),
               UserFullNameWidget(
                 user: widget.challenge.destUser,
                 style: TextTheme.of(context).titleLarge,

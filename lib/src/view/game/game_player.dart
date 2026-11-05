@@ -61,157 +61,218 @@ class const GamePlayer({
 }) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final playerFontSize = isShortVerticalScreen(context) ? 15.0 : 16.0;
+    final isShortScreen = isShortVerticalScreen(context);
+    final playerFontSize = isShortScreen ? 15.0 : 16.0;
+    final avatarRadius = isShortScreen ? 16.0 : 19.0;
 
     final player = game.playerOf(side);
 
     final tournament = game.meta.tournament;
 
-    final playerWidget = Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!zenMode)
-          Row(
-            mainAxisAlignment: clockPosition == ClockPosition.right
-                ? MainAxisAlignment.start
-                : MainAxisAlignment.end,
-            children: [
-              if (player.user != null || player.isAI)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6.0),
+    // With the clock on the left, the player block is mirrored so that it stays against the edge
+    // of the screen, away from the clock.
+    final isMirrored = clockPosition == ClockPosition.left;
+    final colorScheme = ColorScheme.of(context);
+
+    final hasAvatar = !zenMode && (player.user != null || player.isAI);
+
+    final avatar = hasAvatar
+        ? SizedBox.square(
+            dimension: avatarRadius * 2,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                DecoratedBox(
+                  // A thin ring that detaches the avatar from the page.
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colorScheme.outlineVariant, width: 1.5),
+                  ),
                   child: game.youAre == side
                       ? OwnAvatar(
-                          radius: playerFontSize * 0.8,
-                          fallback: NeoAvatar(
-                            name: player.user?.name,
-                            radius: playerFontSize * 0.8,
-                          ),
+                          radius: avatarRadius,
+                          fallback: NeoAvatar(name: player.user?.name, radius: avatarRadius),
                         )
-                      : NeoAvatar(name: player.user?.name, radius: playerFontSize * 0.8),
+                      : NeoAvatar(name: player.user?.name, radius: avatarRadius),
                 ),
-              if (matchupScore != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                  decoration: BoxDecoration(
-                    color: ColorScheme.of(context).primaryContainer,
-                    borderRadius: BorderRadius.circular(4.0),
-                  ),
-                  child: Text(
-                    _scoreDisplay(matchupScore!),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: ColorScheme.of(context).onPrimaryContainer,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 5),
-              ],
-              if (tournament?.ranks != null)
-                Text(
-                  '#${side == Side.white ? tournament?.ranks?.white : tournament?.ranks?.black} ',
-                  style: TextStyle(fontSize: playerFontSize, color: textShade(context, 0.7)),
-                ),
-              if (player.user != null) ...[
-                Consumer(
-                  builder: (context, ref, _) {
-                    bool isPlayerConnected = player.onGame == true;
-                    if (mePlaying && socketUri != null) {
-                      final ping = ref.watch(socketPingProvider(socketUri));
-                      if (ping.rating == 0) {
-                        isPlayerConnected = false;
-                      }
-                    }
-                    return ConnectedIcon(
-                      isConnected: isPlayerConnected,
-                      shouldShowIsOnGameLabels: true,
-                      size: DefaultTextStyle.of(context).style.fontSize,
-                    );
-                  },
-                ),
-              ],
-              const SizedBox(width: 5),
-              if (player.user?.isPatron == true) ...[
-                PatronIcon(size: playerFontSize, color: player.user?.patronColor),
-                const SizedBox(width: 5),
-              ],
-              if (player.user?.title != null) ...[
-                Text(
-                  player.user!.title!,
-                  style: TextStyle(
-                    fontSize: playerFontSize,
-                    fontWeight: player.user?.title == 'BOT' ? null : FontWeight.bold,
-                    color: player.user?.title == 'BOT'
-                        ? context.lichessColors.fancy
-                        : context.lichessColors.brag,
-                  ),
-                ),
-                const SizedBox(width: 5),
-              ],
-              Flexible(
-                child: Tooltip(
-                  message: player.displayName(context.l10n),
-                  child: Text(
-                    player.displayName(context.l10n),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: playerFontSize, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-              if (player.user?.flair != null) ...[
-                const SizedBox(width: 5),
-                HttpNetworkImageWidget(
-                  lichessFlairSrc(player.user!.flair!),
-                  errorBuilder: (_, _, _) => kEmptyWidget,
-                  width: 16,
-                  height: 16,
-                ),
-              ],
-              if (player.rating != null)
-                RatingPrefAware(
-                  isActiveGameOfCurrentUser: game.me != null && !game.finished && !game.aborted,
-                  child: Text.rich(
-                    TextSpan(
-                      text: ' ${player.rating}${player.provisional == true ? '?' : ''}',
-                      children: [
-                        if (player.ratingDiff != null)
-                          TextSpan(
-                            text: ' ${player.ratingDiff! > 0 ? '+' : ''}${player.ratingDiff}',
-                            style: TextStyle(
-                              color: player.ratingDiff! > 0
+                if (player.user != null)
+                  Positioned(
+                    right: -1,
+                    bottom: -1,
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        bool isPlayerConnected = player.onGame == true;
+                        if (mePlaying && socketUri != null) {
+                          final ping = ref.watch(socketPingProvider(socketUri));
+                          if (ping.rating == 0) {
+                            isPlayerConnected = false;
+                          }
+                        }
+                        return Tooltip(
+                          message: isPlayerConnected ? 'Joined the game' : 'Left the game',
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: avatarRadius * 0.6,
+                            height: avatarRadius * 0.6,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isPlayerConnected
                                   ? context.lichessColors.good
-                                  : player.ratingDiff! == 0
-                                  ? context.lichessColors.brag
-                                  : context.lichessColors.error,
+                                  : colorScheme.outline,
+                              border: Border.all(color: colorScheme.surface, width: 2),
                             ),
                           ),
-                      ],
+                        );
+                      },
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 14, color: textShade(context, 0.7)),
                   ),
-                ),
-              if (player.berserk == true) ...[
-                const SizedBox(width: 5),
-                Icon(
-                  LichessIcons.body_cut,
-                  color: LichessColors.brag,
-                  size: playerFontSize,
-                  semanticLabel: context.l10n.arenaBerserk,
-                ),
               ],
-            ],
+            ),
+          )
+        : null;
+
+    final ratingStyle = TextStyle(
+      fontSize: isShortScreen ? 12.0 : 13.0,
+      fontWeight: FontWeight.w600,
+      color: textShade(context, 0.6),
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    final nameRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (tournament?.ranks != null)
+          Text(
+            '#${side == Side.white ? tournament?.ranks?.white : tournament?.ranks?.black} ',
+            style: TextStyle(fontSize: playerFontSize, color: textShade(context, 0.6)),
           ),
-        if (timeToMove != null)
-          MoveExpiration(timeToMove: timeToMove!, mePlaying: mePlaying)
-        else
-          MaterialDifferenceDisplay(
-            materialDiff: materialDiff,
-            materialDifferenceFormat: materialDifferenceFormat,
+        if (player.user?.isPatron == true) ...[
+          PatronIcon(size: playerFontSize, color: player.user?.patronColor),
+          const SizedBox(width: 4),
+        ],
+        if (player.user?.title != null) ...[
+          Text(
+            player.user!.title!,
+            style: TextStyle(
+              fontSize: playerFontSize,
+              fontWeight: player.user?.title == 'BOT' ? FontWeight.w600 : FontWeight.w800,
+              color: player.user?.title == 'BOT'
+                  ? context.lichessColors.fancy
+                  : context.lichessColors.brag,
+            ),
           ),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Tooltip(
+            message: player.displayName(context.l10n),
+            child: Text(
+              player.displayName(context.l10n),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: playerFontSize,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ),
+        ),
+        if (player.user?.flair != null) ...[
+          const SizedBox(width: 5),
+          HttpNetworkImageWidget(
+            lichessFlairSrc(player.user!.flair!),
+            errorBuilder: (_, _, _) => kEmptyWidget,
+            width: 16,
+            height: 16,
+          ),
+        ],
+        if (player.berserk == true) ...[
+          const SizedBox(width: 5),
+          Icon(
+            LichessIcons.body_cut,
+            color: LichessColors.brag,
+            size: playerFontSize,
+            semanticLabel: context.l10n.arenaBerserk,
+          ),
+        ],
+        if (matchupScore != null) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.0),
+            decoration: ShapeDecoration(
+              color: colorScheme.primaryContainer,
+              shape: const StadiumBorder(),
+            ),
+            child: Text(
+              _scoreDisplay(matchupScore!),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ],
       ],
+    );
+
+    final detailsRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!zenMode && player.rating != null) ...[
+          RatingPrefAware(
+            isActiveGameOfCurrentUser: game.me != null && !game.finished && !game.aborted,
+            child: Text.rich(
+              TextSpan(
+                text: '${player.rating}${player.provisional == true ? '?' : ''}',
+                children: [
+                  if (player.ratingDiff != null)
+                    TextSpan(
+                      text: ' ${player.ratingDiff! > 0 ? '+' : ''}${player.ratingDiff}',
+                      style: TextStyle(
+                        color: player.ratingDiff! > 0
+                            ? context.lichessColors.good
+                            : player.ratingDiff! == 0
+                            ? context.lichessColors.brag
+                            : context.lichessColors.error,
+                      ),
+                    ),
+                ],
+              ),
+              maxLines: 1,
+              style: ratingStyle,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Flexible(
+          child: timeToMove != null
+              ? MoveExpiration(timeToMove: timeToMove!, mePlaying: mePlaying)
+              : MaterialDifferenceDisplay(
+                  materialDiff: materialDiff,
+                  materialDifferenceFormat: materialDifferenceFormat,
+                ),
+        ),
+      ],
+    );
+
+    final playerInfo = Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: isMirrored ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [if (!zenMode) nameRow, detailsRow],
+    );
+
+    final playerRowChildren = [
+      if (avatar != null) ...[avatar, const SizedBox(width: 10)],
+      Flexible(child: playerInfo),
+    ];
+
+    final playerWidget = Row(
+      mainAxisAlignment: isMirrored ? MainAxisAlignment.end : MainAxisAlignment.start,
+      children: isMirrored ? playerRowChildren.reversed.toList() : playerRowChildren,
     );
 
     // When the opponent has left, the countdown / claim choices take the whole

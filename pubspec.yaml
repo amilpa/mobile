@@ -151,6 +151,19 @@ flutter:
     - family: LichessPuzzleIcons
       fonts:
         - asset: assets/fonts/PuzzleIcons.ttf
+    # The text font of the app (SIL OFL 1.1, see assets/fonts/PlusJakartaSans/OFL.txt).
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
 
   # Enable generation of localized Strings from arb files.
   generate: true
