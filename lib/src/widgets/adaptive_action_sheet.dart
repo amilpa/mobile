@@ -6,6 +6,13 @@ import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:material_ui/material_ui.dart';
 
+/// Space between the edge of the Material action sheet and its buttons.
+const _kActionSheetPadding = 12.0;
+
+/// Corners of the buttons of the Material action sheet: the 28 of the dialog corners less the
+/// [_kActionSheetPadding], so that the corners of the buttons follow those of the dialog.
+const _kActionButtonBorderRadius = BorderRadius.all(Radius.circular(16));
+
 /// A action bottom sheet that adapts to the platform (Android/iOS).
 ///
 /// [actions] The Actions list that will appear on the ActionSheet. (required)
@@ -137,61 +144,70 @@ Future<T?> showMaterialActionSheet<T>({
   required List<BottomSheetAction> actions,
   bool isDismissible = true,
 }) {
-  final actionTextStyle = TextTheme.of(context).titleMedium ?? const TextStyle(fontSize: 18);
+  final colorScheme = ColorScheme.of(context);
+  final actionTextStyle = (TextTheme.of(context).titleMedium ?? const TextStyle(fontSize: 18))
+      .copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500);
 
   final screenWidth = MediaQuery.widthOf(context);
   return showDialog<T>(
     context: context,
     barrierDismissible: isDismissible,
     builder: (BuildContext context) {
+      // A panel of rounded buttons: the panel is a raised surface (grey in the dark themes) and
+      // each action sits on the deepest surface (near black), so that it reads as a button.
       return Dialog(
+        backgroundColor: colorScheme.surfaceContainerHigh,
         child: SizedBox(
           width: min(screenWidth, kMaterialPopupMenuMaxWidth),
           child: SingleChildScrollView(
+            padding: const EdgeInsets.all(_kActionSheetPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                if (title != null) ...[
+                if (title != null)
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
                     child: Center(child: title),
                   ),
-                ],
                 ...actions.mapIndexed<Widget>((index, action) {
-                  return InkWell(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(index == 0 ? 28 : 0),
-                      bottom: Radius.circular(index == actions.length - 1 ? 28 : 0),
-                    ),
-                    onTap: () {
-                      if (action.dismissOnPress) {
-                        Navigator.of(context).pop();
-                      }
-                      action.onPressed();
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          if (action.leading != null) ...[
-                            action.leading!,
-                            const SizedBox(width: 15),
-                          ],
-                          Expanded(
-                            child: DefaultTextStyle(
-                              style: actionTextStyle,
-                              textAlign: action.leading != null
-                                  ? TextAlign.start
-                                  : TextAlign.center,
-                              child: action.makeLabel(context),
-                            ),
+                  return Padding(
+                    padding: EdgeInsets.only(top: index == 0 ? 0 : 8),
+                    child: Material(
+                      color: colorScheme.surfaceContainerLowest,
+                      shape: const RoundedRectangleBorder(borderRadius: _kActionButtonBorderRadius),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          if (action.dismissOnPress) {
+                            Navigator.of(context).pop();
+                          }
+                          action.onPressed();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Row(
+                            children: [
+                              if (action.leading != null) ...[
+                                action.leading!,
+                                const SizedBox(width: 15),
+                              ],
+                              Expanded(
+                                child: DefaultTextStyle(
+                                  style: actionTextStyle,
+                                  textAlign: action.leading != null
+                                      ? TextAlign.start
+                                      : TextAlign.center,
+                                  child: action.makeLabel(context),
+                                ),
+                              ),
+                              if (action.trailing != null) ...[
+                                const SizedBox(width: 10),
+                                action.trailing!,
+                              ],
+                            ],
                           ),
-                          if (action.trailing != null) ...[
-                            const SizedBox(width: 10),
-                            action.trailing!,
-                          ],
-                        ],
+                        ),
                       ),
                     ),
                   );
