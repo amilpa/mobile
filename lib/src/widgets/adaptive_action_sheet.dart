@@ -160,6 +160,8 @@ Future<T?> showMaterialActionSheet<T>({
       // each action sits on the deepest surface (near black), so that it reads as a button.
       return Dialog(
         backgroundColor: colorScheme.surfaceContainerHigh,
+        // Narrower margins than a dialog's, so that the labels of the actions fit on one line.
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
         child: SizedBox(
           width: min(screenWidth, kMaterialPopupMenuMaxWidth),
           child: SingleChildScrollView(
@@ -188,12 +190,12 @@ Future<T?> showMaterialActionSheet<T>({
                           action.onPressed();
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                           child: Row(
                             children: [
                               if (action.leading != null) ...[
                                 action.leading!,
-                                const SizedBox(width: 15),
+                                const SizedBox(width: 14),
                               ],
                               Expanded(
                                 child: DefaultTextStyle(

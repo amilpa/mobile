@@ -178,15 +178,19 @@ class _AccountMenuScreenState()
               ],
             )
           else ...[
-            Center(
-              child: FilledButton(
-                onPressed: isOnline
-                    ? switch (signInState) {
-                        MutationPending() => null,
-                        _ => () => showSignInOptions(context, ref),
-                      }
-                    : null,
-                child: Text(context.l10n.signIn),
+            Padding(
+              // Kept clear of the colored app bar above it.
+              padding: const EdgeInsets.only(top: 20.0, bottom: 8.0),
+              child: Center(
+                child: FilledButton(
+                  onPressed: isOnline
+                      ? switch (signInState) {
+                          MutationPending() => null,
+                          _ => () => showSignInOptions(context, ref),
+                        }
+                      : null,
+                  child: Text(context.l10n.signIn),
+                ),
               ),
             ),
           ],

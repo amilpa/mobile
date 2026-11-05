@@ -75,7 +75,8 @@ class _BodyState() extends ConsumerState<_Body> {
 
         final openingsAvailable = hasConnectivity || hasSavedOpenings;
         final searchBar = Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          // Kept clear of the colored app bar above it.
+          padding: const EdgeInsets.fromLTRB(16.0, 20.0, 16.0, 8.0),
           child: PlatformSearchBar(
             controller: _searchController,
             hintText: context.l10n.search,
