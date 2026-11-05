@@ -154,10 +154,6 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView>
     parent: _fadeController,
     curve: Curves.easeOut,
   );
-  late final Animation<Offset> _slide = Tween<Offset>(
-    begin: const Offset(0, 0.015),
-    end: Offset.zero,
-  ).animate(_fade);
 
   @override
   void initState() {
@@ -226,21 +222,19 @@ class _TabSwitchingViewState() extends State<_TabSwitchingView>
             offstage: !active,
             child: TickerMode(
               enabled: active,
-              // Every tab keeps its transitions, so that switching tabs does not rebuild them:
-              // only the active one is driven by the fade.
-              child: FadeTransition(
-                opacity: active ? _fade : kAlwaysCompleteAnimation,
-                child: SlideTransition(
-                  position: active ? _slide : const AlwaysStoppedAnimation(Offset.zero),
-                  child: FocusScope(
-                    node: tabFocusNodes[index],
-                    child: Builder(
-                      builder: (BuildContext context) {
-                        return shouldBuildTab[index]
-                            ? widget.tabBuilder(context, index)
-                            : Container();
-                      },
-                    ),
+              // Only the active tab is driven by the fade. The animation is not applied here but
+              // by the scaffolds inside the tab (see PlatformScaffold), so that only their body
+              // fades in and the app bar stays still.
+              child: TabSwitchAnimation(
+                animation: active ? _fade : kAlwaysCompleteAnimation,
+                child: FocusScope(
+                  node: tabFocusNodes[index],
+                  child: Builder(
+                    builder: (BuildContext context) {
+                      return shouldBuildTab[index]
+                          ? widget.tabBuilder(context, index)
+                          : Container();
+                    },
                   ),
                 ),
               ),

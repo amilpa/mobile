@@ -68,11 +68,26 @@ class const PlatformScaffold({
     // the bottom navigation bar.
     final hasExtendedBodyParentScaffold = MainTabScaffoldProperties.hasExtendedBody(context);
 
+    // Inside a bottom tab, only the body takes part in the tab switch animation: the app bar stays
+    // still.
+    final tabSwitchAnimation = TabSwitchAnimation.maybeOf(context);
+
     return Scaffold(
       extendBodyBehindAppBar: Theme.of(context).platform == TargetPlatform.iOS,
       extendBody: extendBody ?? hasExtendedBodyParentScaffold,
       appBar: appBar,
-      body: body,
+      body: body != null && tabSwitchAnimation != null
+          ? FadeTransition(
+              opacity: tabSwitchAnimation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.015),
+                  end: Offset.zero,
+                ).animate(tabSwitchAnimation),
+                child: body,
+              ),
+            )
+          : body,
       drawer: drawer,
       persistentFooterButtons: persistentFooterButtons,
       floatingActionButton: floatingActionButton,

@@ -171,3 +171,22 @@ class const MainTabScaffoldProperties({
     return maybeOf(context)?.extendBody ?? false;
   }
 }
+
+/// Exposes the animation played when switching to a bottom tab.
+///
+/// Scaffolds built inside a tab use it to animate their body only, so that the app bar stays still
+/// while the content fades in.
+class const TabSwitchAnimation({
+  required super.child,
+  required final Animation<double> animation,
+  super.key,
+}) extends InheritedWidget {
+  @override
+  bool updateShouldNotify(TabSwitchAnimation oldWidget) {
+    return animation != oldWidget.animation;
+  }
+
+  static Animation<double>? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<TabSwitchAnimation>()?.animation;
+  }
+}
