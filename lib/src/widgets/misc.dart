@@ -5,20 +5,26 @@ import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class const AppBarLichessTitle({super.key, final double iconSize = 24}) extends StatelessWidget {
+/// The lichess logo followed by its name, as the home tab's app bar title.
+///
+/// The logo is sized from the app bar's title text style and centered on the text, so that they
+/// line up whatever the font.
+class const AppBarLichessTitle({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          WidgetSpan(
-            alignment: .bottom,
-            child: Icon(LichessIcons.logo_lichess, size: iconSize),
-          ),
-          const TextSpan(text: ' lichess'),
-        ],
-      ),
-      maxLines: 1,
+    final style = DefaultTextStyle.of(context).style;
+    final fontSize = style.fontSize ?? 20;
+    return Row(
+      mainAxisSize: .min,
+      children: [
+        Icon(
+          LichessIcons.logo_lichess,
+          size: (fontSize * 1.15).roundToDouble(),
+          color: style.color,
+        ),
+        SizedBox(width: (fontSize * 0.35).roundToDouble()),
+        const Flexible(child: Text('lichess', maxLines: 1, overflow: .ellipsis)),
+      ],
     );
   }
 }

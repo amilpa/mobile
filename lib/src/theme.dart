@@ -51,18 +51,30 @@ ThemeData makeAppTheme(
 /// Scripts it does not cover (Cyrillic, Greek, CJK, ...) fall back to the system font.
 const kAppFontFamily = 'PlusJakartaSans';
 
+/// Font size of the app bar titles on Android, Material's `titleLarge`.
+///
+/// It must be written out: the text theme of a [ThemeData] gets its sizes only once [MaterialApp]
+/// localizes it, so it has none here.
+const kAppBarTitleFontSize = 22.0;
+
 /// Sets [kAppFontFamily] on every text style of [theme], and gives the app bar titles a heavier
 /// weight that suits the font.
 ThemeData _withAppFont(ThemeData theme) {
-  final appBarTitleStyle = theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge;
+  final appBarTitleStyle =
+      theme.appBarTheme.titleTextStyle ??
+      TextStyle(
+        fontSize: kAppBarTitleFontSize,
+        height: 28 / kAppBarTitleFontSize,
+        color: theme.colorScheme.onSurface,
+      );
   return theme.copyWith(
     textTheme: theme.textTheme.apply(fontFamily: kAppFontFamily),
     primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: kAppFontFamily),
     appBarTheme: theme.appBarTheme.copyWith(
-      titleTextStyle: appBarTitleStyle?.copyWith(
+      titleTextStyle: appBarTitleStyle.copyWith(
         fontFamily: kAppFontFamily,
         fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
+        letterSpacing: -0.3,
       ),
     ),
   );

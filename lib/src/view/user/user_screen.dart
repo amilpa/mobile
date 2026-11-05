@@ -1,9 +1,12 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' show ClientException;
 import 'package:lichess_mobile/src/model/account/account_repository.dart';
 import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
+import 'package:lichess_mobile/src/model/game/exported_game.dart';
 import 'package:lichess_mobile/src/model/game/game_filter.dart';
+import 'package:lichess_mobile/src/model/game/game_repository.dart';
 import 'package:lichess_mobile/src/model/relation/relation_repository.dart';
 import 'package:lichess_mobile/src/model/user/user.dart';
 import 'package:lichess_mobile/src/model/user/user_repository.dart';
@@ -35,9 +38,57 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final _userScreenDataProvider = FutureProvider.autoDispose.family<UserScreenData, UserId>(
-  (ref, id) => ref.read(userRepositoryProvider).getUserScreenData(id),
+  (ref, id) {
+    final authUser = ref.read(authControllerProvider);
+    // `/api/mobile/profile` requires the `web:mobile` scope when signed in, which the tokens of
+    // this build never have (see `signBearerToken`): the profile is then put together from the
+    // public API.
+    if (authUser == null) {
+      return ref.read(userRepositoryProvider).getUserScreenData(id);
+    }
+    return _userScreenDataFromPublicApi(ref, id, me: authUser.user.id);
+  },
   name: 'UserScreenDataProvider',
 );
+
+/// The data of the user screen from the public API endpoints, which any token may call.
+///
+/// Only the user is required: the other parts are left empty when their request fails.
+Future<UserScreenData> _userScreenDataFromPublicApi(
+  Ref ref,
+  UserId id, {
+  required UserId me,
+}) async {
+  final userRepository = ref.read(userRepositoryProvider);
+  final gameRepository = ref.read(gameRepositoryProvider);
+
+  Future<T?> optional<T>(Future<T> request) async {
+    try {
+      return await request;
+    } catch (e) {
+      debugPrint('Could not load part of the profile of $id: $e');
+      return null;
+    }
+  }
+
+  final userFuture = userRepository.getUser(id);
+  final activityFuture = optional(userRepository.getActivity(id));
+  final gamesFuture = optional(gameRepository.getUserGames(id, max: 10));
+  final statusFuture = optional(userRepository.getUsersStatuses({id}.lock));
+  final crosstableFuture = me != id ? optional(userRepository.getCrosstable(me, id)) : null;
+
+  final user = await userFuture;
+  final status = (await statusFuture)?.where((s) => s.id == id).firstOrNull;
+
+  return (
+    user: user,
+    activity: await activityFuture ?? IList<UserActivity>(),
+    recentGames: await gamesFuture ?? IList<LightExportedGameWithPov>(),
+    isOnline: status?.online,
+    isPlayingLive: status?.playing,
+    crosstable: crosstableFuture != null ? await crosstableFuture : null,
+  );
+}
 
 class const UserScreen({required final LightUser user, super.key}) extends ConsumerStatefulWidget {
   static Route<dynamic> buildRoute(LightUser user) {

@@ -432,12 +432,7 @@ class _HomeScreenState() extends ConsumerState<HomeTabScreen> {
                           automaticallyImplyLeading: false,
                         )
                       : PlatformAppBar(
-                          title: Theme.of(context).platform == TargetPlatform.iOS
-                              ? AppBarLichessTitle(
-                                  iconSize:
-                                      Theme.of(context).textTheme.headlineSmall?.fontSize ?? 24,
-                                )
-                              : const AppBarLichessTitle(),
+                          title: const AppBarLichessTitle(),
                           centerTitle: false,
                           titleTextStyle: Theme.of(context).platform == TargetPlatform.iOS
                               ? Theme.of(context).textTheme.headlineSmall
