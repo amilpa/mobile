@@ -40,6 +40,25 @@ enum BottomTab() {
         return Symbols.menu_rounded;
     }
   }
+
+  /// Illustration shown next to the tab's title in its app bar, from LichessNeo (MIT, Théophile
+  /// Wallez), see `assets/neo/LICENSE`.
+  ///
+  /// The home tab has none: its app bar shows the lichess logo.
+  String? get headerImage {
+    switch (this) {
+      case BottomTab.home:
+        return null;
+      case BottomTab.puzzles:
+        return 'assets/neo/nav/puzzles.webp';
+      case BottomTab.learn:
+        return 'assets/neo/nav/learn.webp';
+      case BottomTab.watch:
+        return 'assets/neo/nav/watch.webp';
+      case BottomTab.more:
+        return 'assets/neo/nav/more.webp';
+    }
+  }
 }
 
 final currentBottomTabProvider = StateProvider<BottomTab>((ref) => BottomTab.home);

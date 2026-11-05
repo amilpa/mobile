@@ -19,6 +19,7 @@ import 'package:lichess_mobile/src/view/study/study_list_screen.dart';
 import 'package:lichess_mobile/src/view/study/study_screen.dart';
 import 'package:lichess_mobile/src/widgets/haptic_refresh_indicator.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
+import 'package:lichess_mobile/src/widgets/misc.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:lichess_mobile/src/widgets/server_outage_display.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -69,7 +70,7 @@ class const LearnTabScreen({super.key}) extends ConsumerWidget {
       },
       child: PlatformScaffold(
         appBar: PlatformAppBar(
-          title: Text(context.l10n.learnMenu),
+          title: AppBarImageTitle(BottomTab.learn.headerImage!, context.l10n.learnMenu),
           centerTitle: false,
           titleTextStyle: Theme.of(context).platform == TargetPlatform.iOS
               ? Theme.of(context).textTheme.headlineSmall

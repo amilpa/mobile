@@ -45,11 +45,7 @@ class const MoreTabScreen({super.key}) extends ConsumerWidget {
       },
       child: PlatformScaffold(
         appBar: PlatformAppBar(
-          title: Theme.of(context).platform == TargetPlatform.iOS
-              ? AppBarLichessTitle(
-                  iconSize: Theme.of(context).textTheme.headlineSmall?.fontSize ?? 24,
-                )
-              : const AppBarLichessTitle(),
+          title: AppBarImageTitle(BottomTab.more.headerImage!, context.l10n.more),
           centerTitle: false,
           titleTextStyle: Theme.of(context).platform == TargetPlatform.iOS
               ? Theme.of(context).textTheme.headlineSmall

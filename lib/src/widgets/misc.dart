@@ -23,6 +23,27 @@ class const AppBarLichessTitle({super.key, final double iconSize = 24}) extends 
   }
 }
 
+/// An app bar title made of an illustration followed by a text, as used by the bottom tabs.
+///
+/// The illustration is sized from the app bar's title text style, so that it matches the text on
+/// both platforms.
+class const AppBarImageTitle(final String imageAsset, final String title, {super.key})
+    extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = DefaultTextStyle.of(context).style.fontSize ?? 20;
+    final imageSize = (fontSize * 1.3).roundToDouble();
+    return Row(
+      mainAxisSize: .min,
+      children: [
+        Image.asset(imageAsset, width: imageSize, height: imageSize, filterQuality: .medium),
+        SizedBox(width: (fontSize * 0.45).roundToDouble()),
+        Flexible(child: Text(title, maxLines: 1, overflow: .ellipsis)),
+      ],
+    );
+  }
+}
+
 /// A widget that displays a title in the app bar with auto-sizing text.
 class const AppBarTitleText(
   final String text, {

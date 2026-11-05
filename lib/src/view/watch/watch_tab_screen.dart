@@ -25,6 +25,7 @@ import 'package:lichess_mobile/src/view/watch/streamer_screen.dart';
 import 'package:lichess_mobile/src/view/watch/tv_screen.dart';
 import 'package:lichess_mobile/src/widgets/haptic_refresh_indicator.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
+import 'package:lichess_mobile/src/widgets/misc.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:lichess_mobile/src/widgets/server_outage_display.dart';
 import 'package:lichess_mobile/src/widgets/shimmer.dart';
@@ -85,7 +86,7 @@ class _WatchScreenState() extends ConsumerState<WatchTabScreen> {
       },
       child: PlatformScaffold(
         appBar: PlatformAppBar(
-          title: Text(context.l10n.watch),
+          title: AppBarImageTitle(BottomTab.watch.headerImage!, context.l10n.watch),
           centerTitle: false,
           titleTextStyle: Theme.of(context).platform == TargetPlatform.iOS
               ? Theme.of(context).textTheme.headlineSmall

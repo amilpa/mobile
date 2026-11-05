@@ -29,6 +29,7 @@ import 'package:lichess_mobile/src/view/puzzle/streak_screen.dart';
 import 'package:lichess_mobile/src/widgets/board_preview.dart';
 import 'package:lichess_mobile/src/widgets/feedback.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
+import 'package:lichess_mobile/src/widgets/misc.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:lichess_mobile/src/widgets/shimmer.dart';
 import 'package:material_ui/material_ui.dart';
@@ -73,7 +74,7 @@ class const _PuzzleTabScaffold({required final Widget body}) extends ConsumerWid
       },
       child: PlatformScaffold(
         appBar: PlatformAppBar(
-          title: Text(context.l10n.puzzles),
+          title: AppBarImageTitle(BottomTab.puzzles.headerImage!, context.l10n.puzzles),
           centerTitle: false,
           titleTextStyle: Theme.of(context).platform == TargetPlatform.iOS
               ? Theme.of(context).textTheme.headlineSmall
