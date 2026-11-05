@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/testing.dart';
+import 'package:lichess_mobile/src/model/study/study_filter.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/view/study/study_list_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../model/auth/fake_auth_storage.dart';
 import '../../test_helpers.dart';
 import '../../test_provider_scope.dart';
 
@@ -133,6 +135,74 @@ void main() {
         'https://lichess.dev/study/all/hot?page=1',
         'https://lichess.dev/study/search?page=1&q=Magnus&order=hot',
       ]);
+    });
+
+    // The routes of the user's own study lists (/study/mine, ...) only accept the official app's
+    // signed tokens: their studies are found with the study search instead.
+    group('studies of the signed in user', () {
+      late List<String?> searchQueries;
+      late MockClient mockClient;
+
+      setUp(() {
+        searchQueries = [];
+        mockClient = MockClient((request) {
+          if (request.url.path == '/study/search') {
+            searchQueries.add(request.url.queryParameters['q']);
+            return mockResponse(kStudyAllHotPage1Response, 200);
+          }
+          if (request.url.path == '/study/all/hot') {
+            return mockResponse(kStudyAllHotPage1Response, 200);
+          }
+          return mockResponse('', 404);
+        });
+      });
+
+      Future<Widget> makeApp(WidgetTester tester, {StudyCategory? initialCategory}) {
+        return makeTestProviderScopeApp(
+          tester,
+          home: StudyListScreen(initialCategory: initialCategory),
+          authUser: fakeAuthUser,
+          overrides: {
+            lichessClientProvider: lichessClientProvider.overrideWith((ref) {
+              return LichessClient(mockClient, ref);
+            }),
+          },
+        );
+      }
+
+      testWidgets('my studies are searched by owner', (WidgetTester tester) async {
+        await tester.pumpWidget(await makeApp(tester, initialCategory: StudyCategory.mine));
+        await tester.pump();
+
+        expect(searchQueries, ['owner:testuser']);
+        expect(find.text('First Study Page 1'), findsOneWidget);
+      });
+
+      testWidgets('the studies I contribute to are searched by member', (
+        WidgetTester tester,
+      ) async {
+        await tester.pumpWidget(await makeApp(tester));
+        await tester.pump();
+
+        await tester.tap(find.text('Studies I contribute to'));
+        await tester.pump();
+        await tester.pump();
+
+        expect(searchQueries, ['member:testuser']);
+        expect(find.text('First Study Page 1'), findsOneWidget);
+      });
+
+      testWidgets('only offers the lists this build can fetch', (WidgetTester tester) async {
+        await tester.pumpWidget(await makeApp(tester));
+        await tester.pump();
+
+        expect(find.text('All studies'), findsOneWidget);
+        expect(find.text('My studies'), findsOneWidget);
+        expect(find.text('Studies I contribute to'), findsOneWidget);
+        expect(find.text('My public studies'), findsNothing);
+        expect(find.text('My private studies'), findsNothing);
+        expect(find.text('My favourite studies'), findsNothing);
+      });
     });
   });
 }

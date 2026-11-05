@@ -8,6 +8,15 @@ enum StudyCategory() {
   private,
   likes;
 
+  /// The categories this build can list.
+  ///
+  /// Lichess serves the lists of the user's own studies only to the official app's signed tokens
+  /// (`web:mobile` scope), which this build doesn't have. [mine] and [member] are read through the
+  /// study search instead (see `StudyRepository.getStudies`), but the search can't tell the public
+  /// studies from the private ones, nor list the liked ones: [public], [private] and [likes] are
+  /// left out.
+  static const supported = [all, mine, member];
+
   String l10n(AppLocalizations l10n) => switch (this) {
     StudyCategory.all => l10n.studyAllStudies,
     StudyCategory.mine => l10n.studyMyStudies,

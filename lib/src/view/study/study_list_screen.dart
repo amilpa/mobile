@@ -87,7 +87,7 @@ class _StudyListScreenState() extends ConsumerState<StudyListScreen> {
         ],
         bottom: authUser != null
             ? StudyCategoryChips(
-                categories: StudyCategory.values.lock,
+                categories: StudyCategory.supported.lock,
                 currentCategory: category,
                 currentCategoryKey: currentCategoryKey,
                 onCategorySelected: (cat) {

@@ -11,6 +11,7 @@ import 'package:lichess_mobile/src/model/engine/evaluation_preferences.dart';
 import 'package:lichess_mobile/src/model/engine/position_evaluator.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
+import 'package:lichess_mobile/src/model/study/study_learning.dart';
 import 'package:lichess_mobile/src/model/study/study_preferences.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
 import 'package:lichess_mobile/src/network/http.dart';
@@ -163,6 +164,7 @@ class _StudyScreenState() extends ConsumerState<_StudyScreen> with TickerProvide
     super.initState();
 
     _initTabs();
+    _recordOpenedChapter();
   }
 
   @override
@@ -170,9 +172,28 @@ class _StudyScreenState() extends ConsumerState<_StudyScreen> with TickerProvide
     if (oldWidget.studyState.currentChapter.id != widget.studyState.currentChapter.id) {
       _tabController.dispose();
       _initTabs();
+      _recordOpenedChapter();
     }
 
     super.didUpdateWidget(oldWidget);
+  }
+
+  /// Records the chapter shown, if the user follows the study, so that they can go back to it.
+  ///
+  /// After the frame: providers can't be changed while the widget tree is being built.
+  void _recordOpenedChapter() {
+    final study = widget.studyState.study;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(studyLearningProvider.notifier)
+          .recordOpened(
+            studyId: study.id,
+            studyName: study.name,
+            chapterId: study.chapter.id,
+            chapterName: study.currentChapterMeta.name,
+          );
+    });
   }
 
   @override
@@ -208,6 +229,23 @@ class const _StudyMenu({required final StudyOptions options}) extends ConsumerWi
   Widget build(BuildContext context, WidgetRef ref) {
     final authUser = ref.watch(authControllerProvider);
     final state = ref.watch(studyControllerProvider(options)).requireValue;
+    final learningStatus = ref.watch(studyLearningProvider).value?[state.study.id]?.status;
+    final learning = ref.read(studyLearningProvider.notifier);
+
+    /// Marks the study with [status], from the chapter shown if the user didn't follow it yet.
+    void markAs(StudyLearningStatus status) {
+      if (learningStatus == null) {
+        learning.mark(
+          studyId: state.study.id,
+          studyName: state.study.name,
+          chapterId: state.study.chapter.id,
+          chapterName: state.study.currentChapterMeta.name,
+          status: status,
+        );
+      } else {
+        learning.setStatus(state.study.id, status);
+      }
+    }
 
     return ContextMenuIconButton(
       semanticsLabel: 'Study menu',
@@ -220,6 +258,24 @@ class const _StudyMenu({required final StudyOptions options}) extends ConsumerWi
             onPressed: () {
               ref.read(studyControllerProvider(options).notifier).toggleLike();
             },
+          ),
+        if (learningStatus != StudyLearningStatus.learning)
+          ContextMenuAction(
+            icon: Icons.menu_book_outlined,
+            label: 'Mark as learning',
+            onPressed: () => markAs(StudyLearningStatus.learning),
+          ),
+        if (learningStatus != StudyLearningStatus.learned)
+          ContextMenuAction(
+            icon: Icons.task_alt,
+            label: 'Mark as learned',
+            onPressed: () => markAs(StudyLearningStatus.learned),
+          ),
+        if (learningStatus != null)
+          ContextMenuAction(
+            icon: Icons.bookmark_remove_outlined,
+            label: 'Remove from my learning',
+            onPressed: () => learning.remove(state.study.id),
           ),
         ContextMenuAction(
           icon: Theme.of(context).platform == TargetPlatform.iOS ? Icons.ios_share : Icons.share,

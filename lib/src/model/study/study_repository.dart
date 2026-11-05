@@ -17,11 +17,27 @@ final studyRepositoryProvider = Provider<StudyRepository>((Ref ref) {
 }, name: 'StudyRepositoryProvider');
 
 class StudyRepository(final Ref ref, final Client client) {
+  /// Fetches a page of the studies of [category].
+  ///
+  /// The studies of the user [userId] ([StudyCategory.mine] and [StudyCategory.member]) are found
+  /// with the study search, filtered by `owner:` or `member:`: their own routes (`/study/mine`,
+  /// `/study/member`) only accept the official app's signed tokens, while the search accepts the
+  /// `study:read` scope of this build's tokens. Made on behalf of the user, the search also returns
+  /// their private studies.
   Future<StudyList> getStudies({
     required StudyCategory category,
     required StudyListOrder order,
     int page = 1,
+    UserId? userId,
   }) {
+    final searchFilter = switch (category) {
+      StudyCategory.mine => 'owner',
+      StudyCategory.member => 'member',
+      _ => null,
+    };
+    if (searchFilter != null && userId != null) {
+      return searchStudies(query: '$searchFilter:$userId', order: order, page: page);
+    }
     return _requestStudies(
       path: '${category.name}/${order.name}',
       queryParameters: {'page': page.toString()},

@@ -63,7 +63,7 @@ Future<Database> openAppDatabase(DatabaseFactory dbFactory, String path) {
   return dbFactory.openDatabase(
     path,
     options: OpenDatabaseOptions(
-      version: 8,
+      version: 9,
       onConfigure: (db) async {
         final version = await _getDatabaseVersion(db);
         _logger.info('SQLite version: $version');
@@ -96,6 +96,7 @@ Future<Database> openAppDatabase(DatabaseFactory dbFactory, String path) {
         _createAppLogTableV5(batch);
         _createLearnProgressTableV7(batch);
         _createPracticeProgressTableV8(batch);
+        _createStudyLearningTableV9(batch);
         await batch.commit();
       },
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -120,6 +121,9 @@ Future<Database> openAppDatabase(DatabaseFactory dbFactory, String path) {
         }
         if (oldVersion < 8) {
           _createPracticeProgressTableV8(batch);
+        }
+        if (oldVersion < 9) {
+          _createStudyLearningTableV9(batch);
         }
         await batch.commit();
       },
@@ -272,6 +276,23 @@ void _createPracticeProgressTableV8(Batch batch) {
     nbMoves INTEGER NOT NULL,
     lastModified TEXT NOT NULL,
     syncedAt TEXT
+  )
+    ''');
+}
+
+/// The studies the user marked as learning or learned (see `study_learning.dart`). They are kept
+/// until the user removes them: unlike the caches above, the table has no time to live.
+void _createStudyLearningTableV9(Batch batch) {
+  batch.execute('DROP TABLE IF EXISTS study_learning');
+  batch.execute('''
+    CREATE TABLE study_learning(
+    studyId TEXT NOT NULL PRIMARY KEY,
+    studyName TEXT NOT NULL,
+    status TEXT NOT NULL,
+    chapterId TEXT NOT NULL,
+    chapterName TEXT NOT NULL,
+    lastOpened TEXT NOT NULL,
+    lastModified TEXT NOT NULL
   )
     ''');
 }

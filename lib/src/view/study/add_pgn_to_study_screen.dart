@@ -25,7 +25,7 @@ class const AddPgnToStudyScreen({required final String pgn, final Side? orientat
 }
 
 class _AddPgnToStudyScreenState() extends ConsumerState<AddPgnToStudyScreen> {
-  StudyCategory category = StudyCategory.private;
+  StudyCategory category = StudyCategory.mine;
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +36,8 @@ class _AddPgnToStudyScreenState() extends ConsumerState<AddPgnToStudyScreen> {
         title: Text(context.l10n.mobileSelectAStudy),
         bottom: authUser != null
             ? StudyCategoryChips(
-                categories: [
-                  StudyCategory.private,
-                  StudyCategory.public,
-                  StudyCategory.mine,
-                  StudyCategory.member,
-                ].lock,
+                // Only the lists this build can fetch, see [StudyCategory.supported].
+                categories: [StudyCategory.mine, StudyCategory.member].lock,
                 currentCategory: category,
                 onCategorySelected: (cat) {
                   setState(() {

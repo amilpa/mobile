@@ -1,9 +1,11 @@
+import 'package:clock/clock.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_filter.dart';
+import 'package:lichess_mobile/src/model/study/study_learning.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
 import 'package:lichess_mobile/src/network/connectivity.dart';
 import 'package:lichess_mobile/src/network/http.dart';
@@ -15,6 +17,7 @@ import 'package:lichess_mobile/src/view/coordinate_training/coordinate_training_
 import 'package:lichess_mobile/src/view/learn/learn_screen.dart';
 import 'package:lichess_mobile/src/view/practice/practice_screen.dart';
 import 'package:lichess_mobile/src/view/study/study_list.dart';
+import 'package:lichess_mobile/src/view/study/study_learning_screen.dart';
 import 'package:lichess_mobile/src/view/study/study_list_screen.dart';
 import 'package:lichess_mobile/src/view/study/study_screen.dart';
 import 'package:lichess_mobile/src/widgets/haptic_refresh_indicator.dart';
@@ -40,19 +43,11 @@ final _myStudiesLengthProvider = FutureProvider.autoDispose<int>((Ref ref) {
 
   return ref.withClientCacheFor(
     (client) => StudyRepository(ref, client)
-        .getStudies(category: StudyCategory.mine, order: StudyListOrder.updated)
-        .then((value) => value.studies.length),
-    const Duration(hours: 6),
-  );
-});
-
-final _myFavoriteStudiesLengthProvider = FutureProvider.autoDispose<int>((Ref ref) {
-  final authUser = ref.watch(authControllerProvider);
-  if (authUser == null) return Future.value(0);
-
-  return ref.withClientCacheFor(
-    (client) => StudyRepository(ref, client)
-        .getStudies(category: StudyCategory.likes, order: StudyListOrder.updated)
+        .getStudies(
+          category: StudyCategory.mine,
+          order: StudyListOrder.updated,
+          userId: authUser.user.id,
+        )
         .then((value) => value.studies.length),
     const Duration(hours: 6),
   );
@@ -89,7 +84,6 @@ class const _Body() extends ConsumerWidget {
       await Future.wait([
         ref.refresh(_hotStudiesProvider.future),
         ref.refresh(_myStudiesLengthProvider.future),
-        ref.refresh(_myFavoriteStudiesLengthProvider.future),
       ]);
     } catch (_) {
       // Refreshing while the server is unavailable is expected to fail. The
@@ -103,8 +97,12 @@ class const _Body() extends ConsumerWidget {
     final connectionStatus = ref.watch(lichessConnectionStatusProvider);
     final authUser = ref.watch(authControllerProvider);
     final haveIStudies = authUser != null && (ref.watch(_myStudiesLengthProvider).value ?? 0) > 0;
-    final haveIFavoriteStudies =
-        authUser != null && (ref.watch(_myFavoriteStudiesLengthProvider).value ?? 0) > 0;
+    final studyLearning = ref.watch(studyLearningProvider).value ?? StudyLearning.empty;
+    final now = clock.now();
+    final followedStudies = [
+      ...studyLearning.learning.take(3),
+      ...studyLearning.learned.where((entry) => entry.isDueForRevision(now)).take(3),
+    ];
 
     return ListTileTheme.merge(
       iconColor: Theme.of(context).colorScheme.primary,
@@ -153,6 +151,26 @@ class const _Body() extends ConsumerWidget {
                 ),
               ],
             ),
+            // The studies the user follows, kept on this device: the ones being learned, then
+            // the learned ones due for revision. The others are on the full list.
+            if (!studyLearning.isEmpty)
+              ListSection(
+                header: const Text(kMyLearningTitle),
+                onHeaderTap: () => Navigator.of(context).push(StudyLearningScreen.buildRoute()),
+                hasLeading: true,
+                children: [
+                  for (final entry in followedStudies) StudyLearningTile(entry: entry, now: now),
+                  if (studyLearning.length > followedStudies.length)
+                    ListTile(
+                      leading: const Icon(Icons.library_books_outlined),
+                      trailing: Theme.of(context).platform == TargetPlatform.iOS
+                          ? const CupertinoListTileChevron()
+                          : null,
+                      title: Text('See all (${studyLearning.length})'),
+                      onTap: () => Navigator.of(context).push(StudyLearningScreen.buildRoute()),
+                    ),
+                ],
+              ),
             // Learn, practice and coordinate training work offline, so only the studies are
             // replaced by the outage message.
             if (connectionStatus.isServerUnavailable) const ServerOutageDisplay(),
@@ -182,37 +200,25 @@ class const _Body() extends ConsumerWidget {
                   }),
                 ],
               ),
-              if (haveIStudies || haveIFavoriteStudies)
+              // There is no "My favorite studies" shortcut: this build can't list the liked
+              // studies, see [StudyCategory.supported].
+              if (haveIStudies)
                 ListSection(
                   hasLeading: true,
                   margin: Styles.horizontalBodyPadding.add(Styles.sectionBottomPadding),
                   children: [
-                    if (haveIStudies)
-                      ListTile(
-                        leading: const Icon(Symbols.local_library),
-                        trailing: Theme.of(context).platform == TargetPlatform.iOS
-                            ? const CupertinoListTileChevron()
-                            : null,
-                        title: Text(context.l10n.studyMyStudies),
-                        onTap: connectionStatus == LichessConnectionStatus.online
-                            ? () => Navigator.of(context).push(
-                                StudyListScreen.buildRoute(initialCategory: StudyCategory.mine),
-                              )
-                            : null,
-                      ),
-                    if (haveIFavoriteStudies)
-                      ListTile(
-                        leading: const Icon(Symbols.favorite),
-                        trailing: Theme.of(context).platform == TargetPlatform.iOS
-                            ? const CupertinoListTileChevron()
-                            : null,
-                        title: Text(context.l10n.studyMyFavoriteStudies),
-                        onTap: connectionStatus == LichessConnectionStatus.online
-                            ? () => Navigator.of(context).push(
-                                StudyListScreen.buildRoute(initialCategory: StudyCategory.likes),
-                              )
-                            : null,
-                      ),
+                    ListTile(
+                      leading: const Icon(Symbols.local_library),
+                      trailing: Theme.of(context).platform == TargetPlatform.iOS
+                          ? const CupertinoListTileChevron()
+                          : null,
+                      title: Text(context.l10n.studyMyStudies),
+                      onTap: connectionStatus == LichessConnectionStatus.online
+                          ? () => Navigator.of(
+                              context,
+                            ).push(StudyListScreen.buildRoute(initialCategory: StudyCategory.mine))
+                          : null,
+                    ),
                   ],
                 ),
             ],

@@ -1,5 +1,6 @@
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_filter.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
@@ -40,7 +41,12 @@ class StudyListPaginatorNotifier(final StudyListNotifierParams params)
 
     final repo = ref.read(studyRepositoryProvider);
     return params.search == null
-        ? repo.getStudies(category: params.category, order: params.order, page: nextPage)
+        ? repo.getStudies(
+            category: params.category,
+            order: params.order,
+            page: nextPage,
+            userId: ref.read(authControllerProvider)?.user.id,
+          )
         : repo.searchStudies(query: params.search!, order: params.order, page: nextPage);
   }
 }
