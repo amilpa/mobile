@@ -12,7 +12,7 @@ const _kBottomMargin = 10.0;
 /// Padding between the bar and its pills.
 const _kInnerPadding = 5.0;
 
-const _kPillAnimationDuration = Duration(milliseconds: 420);
+const _kPillAnimationDuration = Duration(milliseconds: 320);
 
 /// A destination of the [FloatingNavBar].
 typedef FloatingNavBarItem = ({IconData icon, String label});
@@ -73,7 +73,8 @@ class const FloatingNavBar({
                     children: [
                       AnimatedPositioned(
                         duration: _kPillAnimationDuration,
-                        curve: Curves.easeOutBack,
+                        // Glides into place, without overshooting the tab and coming back.
+                        curve: Curves.easeOutCubic,
                         left: itemWidth * currentIndex,
                         top: 0,
                         bottom: 0,
@@ -140,7 +141,7 @@ class const _NavItem({
             AnimatedScale(
               scale: selected ? 1.08 : 1.0,
               duration: _kPillAnimationDuration,
-              curve: Curves.easeOutBack,
+              curve: Curves.easeOutCubic,
               child: Icon(item.icon, color: color, size: 26, fill: selected ? 1 : 0),
             ),
             const SizedBox(height: 2),
